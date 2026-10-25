@@ -44,6 +44,7 @@ export const AdminPanel: React.FC = () => {
     isAdminAuthenticated, 
     adminLogin, 
     adminLogout,
+    changeAdminPassword,
     saveProduct, 
     deleteProduct, 
     saveCategory, 
@@ -63,6 +64,10 @@ export const AdminPanel: React.FC = () => {
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [oldPassInput, setOldPassInput] = useState('');
+  const [newPassInput, setNewPassInput] = useState('');
+  const [passChangeStatus, setPassChangeStatus] = useState<{ success?: boolean; message?: string } | null>(null);
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'products' | 'categories' | 'banners' | 'orders' | 'settings' | 'supabase'>('dashboard');
 
   // Form states
@@ -101,7 +106,7 @@ export const AdminPanel: React.FC = () => {
       try {
         const success = await adminLogin(passwordInput, emailInput);
         if (!success) {
-          setAuthError('गलत पासवर्ड या ईमेल। कृपया पुनः प्रयास करें।');
+          setAuthError('गलत यूज़रनेम या पासवर्ड। कृपया पुनः प्रयास करें।');
         }
       } catch (err: any) {
         setAuthError(err.message || 'लॉगिन में त्रुटि हुई।');
@@ -110,11 +115,23 @@ export const AdminPanel: React.FC = () => {
       }
     };
 
+    const logoUrl = settings.logo_url || "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png";
+
     return (
       <div className="min-h-[75vh] flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-2xl border border-[#E8DFD5] p-6 sm:p-8 shadow-xl text-center space-y-6">
-          <div className="w-14 h-14 bg-[#1C1917] text-[#E2B158] rounded-full flex items-center justify-center mx-auto shadow-md">
-            <Lock className="w-7 h-7" />
+          {/* Official circular logo in gold frame */}
+          <div className="relative w-16 h-16 rounded-full p-0.5 bg-gradient-to-b from-[#E2B158] via-[#B8860B] to-[#5C4033] shadow-md flex items-center justify-center mx-auto">
+            <div className="w-full h-full rounded-full overflow-hidden bg-[#120D08] flex items-center justify-center border border-[#E2B158]/50">
+              <img
+                src={logoUrl}
+                alt="SETH SANWARIYA COLLECTION Logo"
+                className="w-full h-full object-contain rounded-full p-0.5"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            </div>
           </div>
 
           <div>
@@ -135,32 +152,30 @@ export const AdminPanel: React.FC = () => {
           <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-semibold font-hindi text-[#1C1917] mb-1">
-                ईमेल (वैकल्पिक, Supabase Auth हेतु):
+                यूज़रनेम या ईमेल (Username / Email) *
               </label>
               <input
-                type="email"
+                type="text"
+                required
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="admin@sanwariya.com"
-                className="w-full px-3.5 py-2 text-sm border border-[#D5C7B8] rounded-lg focus:outline-none focus:border-[#9A6B1F] bg-[#FAF8F5]"
+                placeholder="यूज़रनेम या ईमेल दर्ज करें"
+                className="w-full px-3.5 py-2.5 text-sm border border-[#D5C7B8] rounded-lg focus:outline-none focus:border-[#9A6B1F] bg-[#FAF8F5]"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold font-hindi text-[#1C1917] mb-1">
-                एडमिन पासवर्ड (Admin Password) *
+                एडमिन पासवर्ड (Password) *
               </label>
               <input
                 type="password"
                 required
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="पासवर्ड दर्ज करें"
+                placeholder="गोपनीय पासवर्ड दर्ज करें"
                 className="w-full px-3.5 py-2.5 text-sm border border-[#D5C7B8] rounded-lg focus:outline-none focus:border-[#9A6B1F] bg-[#FAF8F5]"
               />
-              <span className="block text-[11px] text-[#8C7A68] mt-1">
-                प्रारंभिक व्यवस्थापक पासवर्ड: <code className="font-mono font-bold text-[#1C1917]">sanwariya123</code>
-              </span>
             </div>
 
             <button
@@ -169,7 +184,7 @@ export const AdminPanel: React.FC = () => {
               className="w-full py-3 bg-[#1C1917] hover:bg-[#2E2824] disabled:opacity-50 text-white rounded-xl font-bold font-hindi text-sm transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
             >
               {isLoggingIn ? <Loader2 className="w-4 h-4 animate-spin text-[#E2B158]" /> : null}
-              <span>{isLoggingIn ? 'प्रमाणित हो रहा है...' : 'लॉगिन करें (Login)'}</span>
+              <span>{isLoggingIn ? 'सत्यापित हो रहा है...' : 'लॉगिन करें (Secure Login)'}</span>
             </button>
           </form>
         </div>
@@ -222,6 +237,20 @@ export const AdminPanel: React.FC = () => {
         {/* Action Controls */}
         <div className="flex items-center gap-2 shrink-0">
           <button
+            onClick={() => {
+              setShowPasswordChangeModal(true);
+              setPassChangeStatus(null);
+              setOldPassInput('');
+              setNewPassInput('');
+            }}
+            className="p-2 text-[#44403C] hover:bg-[#FAF8F5] border border-[#E8DFD5] rounded-lg text-xs flex items-center gap-1.5 font-hindi cursor-pointer"
+            title="पासवर्ड बदलें"
+          >
+            <Lock className="w-3.5 h-3.5 text-[#9A6B1F]" />
+            <span className="hidden sm:inline">पासवर्ड बदलें</span>
+          </button>
+
+          <button
             onClick={() => refreshData()}
             className="p-2 text-[#44403C] hover:bg-[#FAF8F5] border border-[#E8DFD5] rounded-lg text-xs flex items-center gap-1.5 font-hindi cursor-pointer"
             title="डेटा रीफ्रेश करें"
@@ -239,6 +268,76 @@ export const AdminPanel: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordChangeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-sm bg-white rounded-2xl border border-[#E8DFD5] p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E8DFD5]">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-[#9A6B1F]" />
+                <h3 className="font-bold font-hindi text-sm text-[#1C1917]">
+                  व्यवस्थापक पासवर्ड बदलें
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPasswordChangeModal(false)}
+                className="text-[#786C5E] hover:text-[#1C1917] p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {passChangeStatus && (
+              <div className={`p-2.5 rounded-lg text-xs font-hindi ${passChangeStatus.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {passChangeStatus.message}
+              </div>
+            )}
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const res = await changeAdminPassword(oldPassInput, newPassInput);
+                setPassChangeStatus(res);
+                if (res.success) {
+                  setTimeout(() => setShowPasswordChangeModal(false), 2000);
+                }
+              }}
+              className="space-y-3 text-left font-hindi text-xs"
+            >
+              <div>
+                <label className="block font-semibold mb-1 text-[#1C1917]">वर्तमान पासवर्ड (Current Password) *</label>
+                <input
+                  type="password"
+                  required
+                  value={oldPassInput}
+                  onChange={(e) => setOldPassInput(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#D5C7B8] rounded-lg bg-[#FAF8F5] text-xs focus:outline-none focus:border-[#9A6B1F]"
+                  placeholder="वर्तमान पासवर्ड दर्ज करें"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-[#1C1917]">नया पासवर्ड (New Password) *</label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={newPassInput}
+                  onChange={(e) => setNewPassInput(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#D5C7B8] rounded-lg bg-[#FAF8F5] text-xs focus:outline-none focus:border-[#9A6B1F]"
+                  placeholder="नया पासवर्ड (कम से कम 6 अक्षर)"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-[#1C1917] hover:bg-[#2E2824] text-white rounded-lg font-bold text-xs cursor-pointer shadow-xs transition-colors"
+              >
+                नया पासवर्ड सुरक्षित करें
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Success Notification */}
       {saveSuccessMsg && (

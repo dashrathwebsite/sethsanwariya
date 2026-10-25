@@ -333,8 +333,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
 
             {/* Right Promo Box with Socials */}
             <div className="lg:col-span-5 bg-[#FAF8F5] rounded-2xl p-6 border border-[#E8DFD5] text-center space-y-4">
-              <div className="w-14 h-14 bg-[#1C1917] text-[#E2B158] rounded-full flex items-center justify-center mx-auto text-xl font-bold font-heading">
-                SS
+              <div className="relative w-16 h-16 rounded-full p-0.5 bg-gradient-to-b from-[#E2B158] via-[#B8860B] to-[#5C4033] shadow-md flex items-center justify-center mx-auto">
+                <div className="w-full h-full rounded-full overflow-hidden bg-[#120D08] flex items-center justify-center border border-[#E2B158]/50">
+                  <img
+                    src={settings.logo_url || "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png"}
+                    alt="SETH SANWARIYA COLLECTION"
+                    className="w-full h-full object-contain rounded-full p-0.5"
+                  />
+                </div>
               </div>
               <div>
                 <h4 className="font-bold text-base text-[#1C1917] font-hindi">

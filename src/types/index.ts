@@ -58,9 +58,11 @@ export interface StoreSettings {
   store_name: string;
   store_name_hi: string;
   tagline_hi: string;
+  logo_url?: string;
   phone_number: string;
   whatsapp_number: string;
   address_hi: string;
+  location_hi?: string;
   google_maps_url: string;
   business_hours_hi: string;
   opening_time: string; // "08:00"
@@ -101,4 +103,15 @@ export interface Order {
     image_url: string;
   }[];
   notes?: string;
+}
+
+export interface MediaItem {
+  id: string;
+  url: string;
+  display_url?: string;
+  delete_url?: string;
+  name: string;
+  size?: number;
+  created_at: string;
+  source: 'imgbb' | 'firebase' | 'local';
 }

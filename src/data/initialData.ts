@@ -1,12 +1,14 @@
-import { Category, Product, StoreSettings, HomepageBanner, Order } from '../types';
+import { Category, Product, StoreSettings, HomepageBanner, Order, MediaItem } from '../types';
 
 export const INITIAL_SETTINGS: StoreSettings = {
   store_name: "SETH SANWARIYA COLLECTION",
   store_name_hi: "सेठ सांवरिया कलेक्शन",
   tagline_hi: "प्रीमियम एवं प्रामाणिक भारतीय परिधान संग्रह",
+  logo_url: "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png",
   phone_number: "+91 8529095431",
   whatsapp_number: "+91 8529095431",
-  address_hi: "सेठ सांवरिया कलेक्शन, मुख्य बाजार (गूगल मैप लोकेशन नीचे देखें)",
+  address_hi: "कातर छोटी, राजस्थान – 331517 (Katar Chhoti, Rajasthan – 331517)",
+  location_hi: "कातर छोटी, राजस्थान – 331517",
   google_maps_url: "https://maps.app.goo.gl/NQzTTJeZxeSj55bj8",
   business_hours_hi: "सोमवार से रविवार — सुबह 8:00 बजे से रात 10:00 बजे तक (सप्ताह के सभी 7 दिन खुली रहती है)",
   opening_time: "08:00",
@@ -16,7 +18,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
   delivery_charge_threshold: 999,
   standard_delivery_charge: 70,
   announcement_bar_hi: "🎉 सेठ सांवरिया कलेक्शन में आपका स्वागत है! दुकान सुबह 8:00 से रात 10:00 बजे तक सातों दिन खुली है। कॉल: +91 8529095431",
-  about_text_hi: "सेठ सांवरिया कलेक्शन पारंपरिक एवं आधुनिक भारतीय परिधानों का एक प्रतिष्ठित प्रतिष्ठान है। हम पुरुषों, महिलाओं और बच्चों के लिए उच्च गुणवत्ता वाले कुर्ते, साड़ियां, सूट, शेरवानी और आधुनिक एथनिक कपड़े उपलब्ध कराते हैं। हमारी प्राथमिकता बेहतरीन फैब्रिक, सुरुचिपूर्ण सिलाई और ग्राहकों का अटूट विश्वास है।",
+  about_text_hi: "सेठ सांवरिया कलेक्शन पारंपरिक एवं आधुनिक भारतीय परिधानों का एक प्रतिष्ठित प्रतिष्ठान है। हम पुरुषों, महिलाओं और बच्चों के लिए उच्च गुणवत्ता वाले कुर्ते, साड़ियां, सूट, शेरवानी और आधुनिक एथनिक कपड़े उपलब्ध कराते हैं। हमारी प्राथमिकता बेहतरीन फैब्रिक, सुरुचिपूर्ण सिलाई और ग्राहकों का अटूट विश्वास है। पता: कातर छोटी, राजस्थान – 331517।",
   return_policy_hi: "डिलीवरी के 7 दिनों के भीतर साइज न मिलने या खराबी होने पर आसान वापसी और बदलाव की सुविधा उपलब्ध है। कपड़े पर टैग और बिल होना अनिवार्य है।",
   shipping_policy_hi: "ऑर्डर की पुष्टि के 24-48 घंटों में पार्सल डिस्पैच कर दिया जाता है। सामान्यतः 3-5 कार्यदिवसों में डिलीवरी प्राप्त हो जाती है।",
   cancellation_policy_hi: "ऑर्डर डिस्पैच होने से पहले आप WhatsApp या फोन कॉल (+91 8529095431) के माध्यम से बिना किसी शुल्क के ऑर्डर रद्द कर सकते हैं।",
@@ -241,5 +243,56 @@ export const INITIAL_ORDERS: Order[] = [
       }
     ],
     notes: "WhatsApp पर साइज और डिलीवरी समय की पुष्टि की गई।"
+  }
+];
+
+export const INITIAL_MEDIA_ITEMS: MediaItem[] = [
+  {
+    id: "media-official-logo",
+    url: "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png",
+    display_url: "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png",
+    name: "official_store_logo.png",
+    created_at: new Date().toISOString(),
+    source: "imgbb"
+  },
+  {
+    id: "media-festive-hero",
+    url: "/src/assets/images/hero_festive_ethnic_1792914844440.jpg",
+    display_url: "/src/assets/images/hero_festive_ethnic_1792914844440.jpg",
+    name: "hero_festive_ethnic.jpg",
+    created_at: new Date().toISOString(),
+    source: "local"
+  },
+  {
+    id: "media-mens-kurta",
+    url: "/src/assets/images/cat_mens_kurta_suit_1792914843627.jpg",
+    display_url: "/src/assets/images/cat_mens_kurta_suit_1792914843627.jpg",
+    name: "cat_mens_kurta.jpg",
+    created_at: new Date().toISOString(),
+    source: "local"
+  },
+  {
+    id: "media-womens-saree",
+    url: "/src/assets/images/cat_womens_silk_saree_1792914844028.jpg",
+    display_url: "/src/assets/images/cat_womens_silk_saree_1792914844028.jpg",
+    name: "cat_womens_silk_saree.jpg",
+    created_at: new Date().toISOString(),
+    source: "local"
+  },
+  {
+    id: "media-kurti-suit",
+    url: "/src/assets/images/cat_kurti_suit_set_1792914845162.jpg",
+    display_url: "/src/assets/images/cat_kurti_suit_set_1792914845162.jpg",
+    name: "cat_kurti_suit_set.jpg",
+    created_at: new Date().toISOString(),
+    source: "local"
+  },
+  {
+    id: "media-kids-wear",
+    url: "/src/assets/images/cat_kids_ethnic_wear_1792914844788.jpg",
+    display_url: "/src/assets/images/cat_kids_ethnic_wear_1792914844788.jpg",
+    name: "cat_kids_ethnic_wear.jpg",
+    created_at: new Date().toISOString(),
+    source: "local"
   }
 ];

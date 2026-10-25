@@ -21,6 +21,7 @@ interface NavbarProps {
   onOpenCart: () => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  onReplayIntro?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -28,11 +29,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   onOpenCart,
   searchQuery,
-  onSearchChange
+  onSearchChange,
+  onReplayIntro
 }) => {
   const { settings, cartCount, wishlist, categories } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSearchInput, setShowSearchInput] = useState(false);
+
+  const officialLogoUrl = settings.logo_url || "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png";
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-[#E8DFD5] transition-all">
@@ -45,11 +49,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           <StoreStatusBadge compact />
           <span aria-hidden="true" className="text-[#57534E]">|</span>
           <span className="text-[11px] text-[#D5C2AF] hidden sm:inline">
-            दुकान खुलने का समय: सोमवार से रविवार — सुबह 8:00 बजे से रात 10:00 बजे तक (सप्ताह के सभी 7 दिन)
+            दुकान खुलने का समय: 8:00 AM–10:00 PM (सातों दिन) · कातर छोटी, राजस्थान
           </span>
         </div>
 
         <div className="flex items-center gap-3 shrink-0 text-xs">
+          {onReplayIntro && (
+            <button
+              type="button"
+              onClick={onReplayIntro}
+              className="inline-flex items-center gap-1 text-[#E2B158] hover:text-white transition-colors cursor-pointer text-[11px]"
+              title="वेलकम स्क्रीन पुनः देखें"
+            >
+              <Sparkles className="w-3 h-3 text-[#E2B158]" />
+              <span className="hidden sm:inline">वेलकम स्क्रीन</span>
+            </button>
+          )}
+
           <a 
             href="tel:+918529095431"
             className="inline-flex items-center gap-1 text-[#E2B158] hover:underline font-semibold"
@@ -72,23 +88,39 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </aside>
 
-      {/* 2. Main Navigation Bar - Complying with Top Bar Contract (3 zones separated by gap-8) */}
+      {/* 2. Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 md:gap-8 h-18">
           
-          {/* ZONE 1: Single text element wordmark */}
+          {/* ZONE 1: Perfectly Circular Official Logo + Brand Wordmark */}
           <button 
             onClick={() => { onNavigate('home'); setMobileMenuOpen(false); }}
-            className="text-left group cursor-pointer focus:outline-none whitespace-nowrap shrink-0"
+            className="text-left group cursor-pointer focus:outline-none whitespace-nowrap shrink-0 flex items-center gap-3"
+            aria-label="सेठ सांवरिया कलेक्शन मुख्य पृष्ठ"
           >
-            <div className="flex items-center gap-2">
-              <span className="text-xl md:text-2xl font-bold font-heading tracking-wider text-[#1C1917] group-hover:text-[#9A6B1F] transition-colors">
+            {/* Official circular logo container */}
+            <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full p-0.5 bg-gradient-to-b from-[#E2B158] via-[#B8860B] to-[#5C4033] shadow-md flex items-center justify-center shrink-0 group-hover:shadow-[0_0_12px_rgba(226,177,88,0.5)] transition-shadow">
+              <div className="w-full h-full rounded-full overflow-hidden bg-[#120D08] flex items-center justify-center border border-[#E2B158]/50">
+                <img
+                  src={officialLogoUrl}
+                  alt="SETH SANWARIYA COLLECTION Logo"
+                  className="w-full h-full object-contain rounded-full p-0.5 transition-transform duration-500 group-hover:scale-105"
+                  onError={(e) => {
+                    // Fallback to text monogram if network fails
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <span className="text-lg sm:text-xl md:text-2xl font-bold font-heading tracking-wider text-[#1C1917] group-hover:text-[#9A6B1F] transition-colors block leading-tight">
                 SETH SANWARIYA
               </span>
+              <p className="text-[11px] font-hindi text-[#786C5E] font-medium tracking-normal -mt-0.5">
+                सेठ सांवरिया कलेक्शन · कातर छोटी
+              </p>
             </div>
-            <p className="text-[11px] font-hindi text-[#786C5E] font-medium tracking-normal -mt-0.5">
-              सेठ सांवरिया कलेक्शन
-            </p>
           </button>
 
           {/* ZONE 2: Clean single-line text navigation links */}

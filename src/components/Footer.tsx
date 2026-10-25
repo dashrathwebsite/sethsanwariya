@@ -69,14 +69,28 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           
           {/* Col 1: Brand Info & Social Links */}
           <div className="space-y-3">
-            <h3 className="font-heading text-xl font-bold tracking-wider text-white">
-              {settings.store_name}
-            </h3>
-            <p className="text-sm font-hindi text-[#E2B158] font-medium">
-              {settings.store_name_hi}
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="relative w-12 h-12 rounded-full p-0.5 bg-gradient-to-b from-[#E2B158] via-[#B8860B] to-[#5C4033] shadow-md flex items-center justify-center shrink-0">
+                <div className="w-full h-full rounded-full overflow-hidden bg-[#120D08] flex items-center justify-center border border-[#E2B158]/50">
+                  <img
+                    src={settings.logo_url || "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png"}
+                    alt="SETH SANWARIYA COLLECTION"
+                    className="w-full h-full object-contain rounded-full p-0.5"
+                  />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-heading text-lg font-bold tracking-wider text-white">
+                  {settings.store_name}
+                </h3>
+                <p className="text-xs font-hindi text-[#E2B158] font-medium">
+                  {settings.store_name_hi}
+                </p>
+              </div>
+            </div>
+
             <p className="text-xs text-[#A8A29E] leading-relaxed font-hindi">
-              {settings.tagline_hi}। भारतीय संस्कृति, उत्सव व आधुनिक फैशन का विश्वसनीय प्रतिष्ठान।
+              कातर छोटी, राजस्थान – 331517। भारतीय संस्कृति, उत्सव व आधुनिक फैशन का विश्वसनीय प्रतिष्ठान।
             </p>
             
             {/* Direct Official Communication Buttons */}
@@ -247,6 +261,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <p className="text-emerald-400 font-bold text-[11px]">
                 सप्ताह के सभी 7 दिन खुली रहती है।
               </p>
+            </div>
+
+            {/* Store Address */}
+            <div className="bg-[#231C16] p-2.5 rounded-lg border border-[#3D2F22] text-[11px] text-[#D5C2AF]">
+              <span className="font-bold text-[#E2B158] block mb-0.5">दुकान का पता:</span>
+              <p>कातर छोटी, राजस्थान – 331517</p>
+              <p className="text-[#8C7A68] text-[10px]">Katar Chhoti, Rajasthan – 331517</p>
             </div>
 
             {/* Official Contact Info */}

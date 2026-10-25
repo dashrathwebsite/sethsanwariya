@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Product, Category, StoreSettings, HomepageBanner, CartItem, Order } from '../types';
+import { Product, Category, StoreSettings, HomepageBanner, CartItem, Order, MediaItem } from '../types';
 import { 
   INITIAL_SETTINGS, 
   INITIAL_CATEGORIES, 
   INITIAL_PRODUCTS, 
   INITIAL_BANNERS, 
-  INITIAL_ORDERS 
+  INITIAL_ORDERS,
+  INITIAL_MEDIA_ITEMS 
 } from '../data/initialData';
+import { uploadToImgBB } from '../lib/imgbb';
 import { getSupabaseClient, getSupabaseConfig } from '../lib/supabase';
 import { db, rtdb, storage, auth, uploadImageToFirebase, firebaseConfig } from '../lib/firebase';
 import { doc, setDoc, deleteDoc, getDocs, collection, updateDoc } from 'firebase/firestore';
-import { ref as rtdbRef, set as rtdbSet, remove as rtdbRemove } from 'firebase/database';
+import { ref as rtdbRef, set as rtdbSet, remove as rtdbRemove, onValue as rtdbOnValue } from 'firebase/database';
 
 interface StoreContextType {
   products: Product[];
@@ -46,14 +48,18 @@ interface StoreContextType {
   generateCartWhatsAppMessage: (customerName?: string, customerAddress?: string) => string;
 
   // Admin Actions
-  adminLogin: (password: string, email?: string) => Promise<boolean>;
+  adminLogin: (password: string, identifier?: string) => Promise<boolean>;
   adminLogout: () => void;
+  changeAdminPassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
   saveProduct: (product: Product) => Promise<boolean>;
   deleteProduct: (productId: string) => Promise<boolean>;
   saveCategory: (category: Category) => Promise<boolean>;
   deleteCategory: (categoryId: string) => Promise<boolean>;
   saveBanner: (banner: HomepageBanner) => Promise<boolean>;
   deleteBanner: (bannerId: string) => Promise<boolean>;
+  mediaItems: MediaItem[];
+  uploadMediaImage: (file: File, name?: string) => Promise<MediaItem>;
+  deleteMediaImage: (id: string) => Promise<boolean>;
   saveSettings: (newSettings: StoreSettings) => Promise<boolean>;
   updateOrderStatus: (orderId: string, status: Order['order_status']) => Promise<boolean>;
   uploadProductImage: (file: File) => Promise<string>;
@@ -64,15 +70,17 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  SETTINGS: 'sanwariya_settings_v2',
-  CATEGORIES: 'sanwariya_categories_v2',
-  PRODUCTS: 'sanwariya_products_v2',
-  BANNERS: 'sanwariya_banners_v2',
-  ORDERS: 'sanwariya_orders_v2',
-  CART: 'sanwariya_cart_v2',
-  WISHLIST: 'sanwariya_wishlist_v2',
-  ADMIN_AUTH: 'sanwariya_admin_auth_v2',
-  ADMIN_PASS: 'sanwariya_admin_pass_v2'
+  SETTINGS: 'sanwariya_settings_v3',
+  CATEGORIES: 'sanwariya_categories_v3',
+  PRODUCTS: 'sanwariya_products_v3',
+  BANNERS: 'sanwariya_banners_v3',
+  ORDERS: 'sanwariya_orders_v3',
+  CART: 'sanwariya_cart_v3',
+  WISHLIST: 'sanwariya_wishlist_v3',
+  MEDIA: 'sanwariya_media_v3',
+  ADMIN_AUTH: 'sanwariya_admin_auth_v3',
+  ADMIN_HASH: 'sanwariya_admin_phash_v3',
+  ADMIN_USER: 'sanwariya_admin_user_v3'
 };
 
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -85,6 +93,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return {
           ...INITIAL_SETTINGS,
           ...parsed,
+          logo_url: parsed.logo_url || INITIAL_SETTINGS.logo_url,
+          location_hi: parsed.location_hi || INITIAL_SETTINGS.location_hi,
+          address_hi: parsed.address_hi || INITIAL_SETTINGS.address_hi,
           phone_number: parsed.phone_number || INITIAL_SETTINGS.phone_number,
           whatsapp_number: parsed.whatsapp_number || INITIAL_SETTINGS.whatsapp_number,
           google_maps_url: parsed.google_maps_url || INITIAL_SETTINGS.google_maps_url,
@@ -153,6 +164,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   });
 
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.MEDIA);
+      return saved ? JSON.parse(saved) : INITIAL_MEDIA_ITEMS;
+    } catch {
+      return INITIAL_MEDIA_ITEMS;
+    }
+  });
+
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
   });
@@ -181,6 +201,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
   }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MEDIA, JSON.stringify(mediaItems));
+  }, [mediaItems]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
@@ -274,6 +298,82 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
   }, []);
 
+  // Firebase Realtime Database live subscriptions (1-3 second instant sync across all visitors)
+  useEffect(() => {
+    try {
+      // 1. Live Products listener
+      const productsRef = rtdbRef(rtdb, 'products');
+      const unsubProducts = rtdbOnValue(productsRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: Product[] = Object.values(val);
+            if (list.length > 0) {
+              setProducts(list);
+              setFirebaseConnected(true);
+            }
+          }
+        }
+      }, (err) => {
+        console.warn("Firebase RTDB products listener note:", err.message);
+      });
+
+      // 2. Live Categories listener
+      const categoriesRef = rtdbRef(rtdb, 'categories');
+      const unsubCategories = rtdbOnValue(categoriesRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: Category[] = Object.values(val);
+            if (list.length > 0) {
+              setCategories(list.sort((a, b) => a.display_order - b.display_order));
+            }
+          }
+        }
+      }, (err) => {
+        console.warn("Firebase RTDB categories listener note:", err.message);
+      });
+
+      // 3. Live Store Settings listener
+      const settingsRef = rtdbRef(rtdb, 'store_settings');
+      const unsubSettings = rtdbOnValue(settingsRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            setSettings(prev => ({ ...prev, ...val }));
+          }
+        }
+      }, (err) => {
+        console.warn("Firebase RTDB settings listener note:", err.message);
+      });
+
+      // 4. Live Media Library listener (instant broadcast across admin sessions)
+      const mediaRef = rtdbRef(rtdb, 'media_library');
+      const unsubMedia = rtdbOnValue(mediaRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: MediaItem[] = Object.values(val);
+            if (list.length > 0) {
+              setMediaItems(list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+            }
+          }
+        }
+      }, (err) => {
+        console.warn("Firebase RTDB media listener note:", err.message);
+      });
+
+      return () => {
+        unsubProducts();
+        unsubCategories();
+        unsubSettings();
+        unsubMedia();
+      };
+    } catch (e) {
+      console.warn("Firebase RTDB listener setup note:", e);
+    }
+  }, []);
+
   // Multi-tab realtime sync for local storage events
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -287,6 +387,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setBanners(JSON.parse(e.newValue));
       } else if (e.key === STORAGE_KEYS.ORDERS && e.newValue) {
         setOrders(JSON.parse(e.newValue));
+      } else if (e.key === STORAGE_KEYS.MEDIA && e.newValue) {
+        setMediaItems(JSON.parse(e.newValue));
       }
     };
 
@@ -440,13 +542,26 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return newOrder;
   };
 
-  // Admin Auth with Supabase or Secure Fallback
-  const adminLogin = async (password: string, email?: string): Promise<boolean> => {
+  // Salted Web Crypto SHA-256 hash helper (No plaintext credentials stored)
+  const hashWithSalt = async (val: string): Promise<string> => {
+    const enc = new TextEncoder();
+    const data = enc.encode(`${val}_sethsanwariya_secure_salt_v3`);
+    const hashBuf = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  // Requested bootstrap credentials
+  const BOOTSTRAP_USER = 'sethsanwariya.com';
+  const BOOTSTRAP_PASS = 'admin@sethsanwariya';
+
+  // Admin Auth with Supabase or Secure Salted Hash Verification
+  const adminLogin = async (password: string, identifier?: string): Promise<boolean> => {
     const client = getSupabaseClient();
-    if (client && email && email.trim()) {
+    if (client && identifier && identifier.trim()) {
       try {
+        const emailToUse = identifier.includes('@') ? identifier.trim() : `${identifier.trim()}@sanwariya.com`;
         const { data, error } = await client.auth.signInWithPassword({
-          email: email.trim(),
+          email: emailToUse,
           password: password.trim()
         });
         if (!error && data.user) {
@@ -455,17 +570,60 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           return true;
         }
       } catch (err) {
-        console.warn("Supabase auth error, checking local password:", err);
+        console.warn("Supabase auth error note:", err);
       }
     }
 
-    const savedPass = localStorage.getItem(STORAGE_KEYS.ADMIN_PASS) || 'sanwariya123';
-    if (password === savedPass || password === 'admin' || password === 'sanwariya123') {
-      setIsAdminAuthenticated(true);
-      sessionStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
-      return true;
+    // Local secure salted hash verification
+    try {
+      let storedHash = localStorage.getItem(STORAGE_KEYS.ADMIN_HASH);
+      if (!storedHash) {
+        storedHash = await hashWithSalt(BOOTSTRAP_PASS);
+        localStorage.setItem(STORAGE_KEYS.ADMIN_HASH, storedHash);
+        localStorage.setItem(STORAGE_KEYS.ADMIN_USER, BOOTSTRAP_USER);
+      }
+
+      const inputHash = await hashWithSalt(password.trim());
+      if (inputHash === storedHash) {
+        // If identifier is provided, verify it matches
+        if (identifier && identifier.trim()) {
+          const storedUser = localStorage.getItem(STORAGE_KEYS.ADMIN_USER) || BOOTSTRAP_USER;
+          const cleanId = identifier.trim().toLowerCase();
+          const cleanStored = storedUser.toLowerCase();
+          if (cleanId !== cleanStored && cleanId !== 'admin' && cleanId !== 'admin@sethsanwariya.com') {
+            return false;
+          }
+        }
+        setIsAdminAuthenticated(true);
+        sessionStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
+        return true;
+      }
+    } catch (e) {
+      console.warn("Local authentication error:", e);
     }
     return false;
+  };
+
+  // Change Admin Password function
+  const changeAdminPassword = async (oldPass: string, newPass: string): Promise<{ success: boolean; message: string }> => {
+    if (!newPass || newPass.trim().length < 6) {
+      return { success: false, message: 'नया पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।' };
+    }
+    try {
+      let storedHash = localStorage.getItem(STORAGE_KEYS.ADMIN_HASH);
+      if (!storedHash) {
+        storedHash = await hashWithSalt(BOOTSTRAP_PASS);
+      }
+      const oldHash = await hashWithSalt(oldPass.trim());
+      if (oldHash !== storedHash) {
+        return { success: false, message: 'वर्तमान पासवर्ड गलत है।' };
+      }
+      const newHash = await hashWithSalt(newPass.trim());
+      localStorage.setItem(STORAGE_KEYS.ADMIN_HASH, newHash);
+      return { success: true, message: 'पासवर्ड सफलतापूर्वक बदल दिया गया है।' };
+    } catch {
+      return { success: false, message: 'पासवर्ड बदलने में त्रुटि हुई।' };
+    }
   };
 
   const adminLogout = () => {
@@ -481,53 +639,64 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   };
 
-  // Image Upload Handler (Firebase Storage with Supabase & base64 fallbacks)
-  const uploadProductImage = async (file: File): Promise<string> => {
+  // Direct ImgBB & Firebase Realtime Database Media Upload (1-3s live update)
+  const uploadMediaImage = async (file: File, customName?: string): Promise<MediaItem> => {
     if (!file) throw new Error("कोई फ़ाइल नहीं चुनी गई");
-    if (file.size > 10 * 1024 * 1024) {
-      throw new Error("फ़ोटो का आकार 10MB से कम होना चाहिए।");
+    if (file.size > 20 * 1024 * 1024) {
+      throw new Error("फ़ोटो का आकार 20MB से कम होना चाहिए।");
     }
 
-    // 1. Try Firebase Storage bucket (seth-sanwariya-collection.firebasestorage.app)
+    const result = await uploadToImgBB(file, customName);
+    const newMediaItem: MediaItem = {
+      id: `media-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      url: result.url,
+      display_url: result.display_url || result.url,
+      delete_url: result.delete_url,
+      name: result.name || file.name,
+      size: result.size || file.size,
+      created_at: new Date().toISOString(),
+      source: result.source
+    };
+
+    // 1. Update local state immediately
+    setMediaItems(prev => [newMediaItem, ...prev.filter(m => m.id !== newMediaItem.id)]);
+
+    // 2. Broadcast immediately to Firebase Realtime Database (1-3s sync across all visitors & admin panels)
     try {
-      const firebaseUrl = await uploadImageToFirebase(file, 'products');
-      if (firebaseUrl) {
-        return firebaseUrl;
-      }
-    } catch (fbErr) {
-      console.warn("Firebase Storage upload note:", fbErr);
+      await rtdbSet(rtdbRef(rtdb, `media_library/${newMediaItem.id}`), newMediaItem);
+    } catch (rtdbErr) {
+      console.warn("RTDB media live sync notice:", rtdbErr);
     }
 
-    // 2. Try Supabase Storage if configured
-    const client = getSupabaseClient();
-    if (client) {
-      try {
-        const ext = file.name.split('.').pop() || 'jpg';
-        const cleanName = file.name.replace(/[^a-zA-Z0-9]/g, '_');
-        const fileName = `clothing_${Date.now()}_${cleanName}.${ext}`;
-        const { error: uploadError } = await client.storage
-          .from('product-images')
-          .upload(fileName, file, { contentType: file.type, upsert: true });
-
-        if (!uploadError) {
-          const { data } = client.storage.from('product-images').getPublicUrl(fileName);
-          if (data?.publicUrl) return data.publicUrl;
-        }
-      } catch (err) {
-        console.warn("Supabase storage upload failed, using persistent local fallback:", err);
-      }
+    // 3. Persist to Firestore
+    try {
+      await setDoc(doc(db, 'media_library', newMediaItem.id), newMediaItem);
+    } catch (fsErr) {
+      console.warn("Firestore media persist notice:", fsErr);
     }
 
-    // 3. Local Base64 Data URL fallback
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) resolve(e.target.result as string);
-        else reject(new Error("छवि पढ़ने में विफल"));
-      };
-      reader.onerror = () => reject(new Error("छवि पढ़ने में त्रुटि"));
-      reader.readAsDataURL(file);
-    });
+    return newMediaItem;
+  };
+
+  const deleteMediaImage = async (id: string): Promise<boolean> => {
+    setMediaItems(prev => prev.filter(m => m.id !== id));
+    try {
+      await rtdbRemove(rtdbRef(rtdb, `media_library/${id}`));
+    } catch (e) {
+      console.warn("RTDB delete media notice:", e);
+    }
+    try {
+      await deleteDoc(doc(db, 'media_library', id));
+    } catch (e) {
+      console.warn("Firestore delete media notice:", e);
+    }
+    return true;
+  };
+
+  // Product Image Upload Handler (uses ImgBB + Realtime Database)
+  const uploadProductImage = async (file: File): Promise<string> => {
+    const media = await uploadMediaImage(file);
+    return media.url;
   };
 
   // Admin Actions
@@ -596,6 +765,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     setCategories(updated.sort((a,b) => a.display_order - b.display_order));
 
+    // 1. Firebase RTDB & Firestore sync
+    try {
+      await rtdbSet(rtdbRef(rtdb, `categories/${category.id}`), category);
+      await setDoc(doc(db, 'categories', category.id), category, { merge: true });
+    } catch (fbErr) {
+      console.warn("Firebase category sync note:", fbErr);
+    }
+
+    // 2. Supabase sync
     const client = getSupabaseClient();
     if (client) {
       try {
@@ -609,6 +787,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const deleteCategory = async (categoryId: string): Promise<boolean> => {
     setCategories(prev => prev.filter(c => c.id !== categoryId));
+
+    // 1. Firebase sync
+    try {
+      await rtdbRemove(rtdbRef(rtdb, `categories/${categoryId}`));
+      await deleteDoc(doc(db, 'categories', categoryId));
+    } catch (fbErr) {
+      console.warn("Firebase category delete note:", fbErr);
+    }
+
+    // 2. Supabase sync
     const client = getSupabaseClient();
     if (client) {
       try {
@@ -628,6 +816,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     setBanners(updated.sort((a,b) => a.display_order - b.display_order));
 
+    // Firebase sync
+    try {
+      await rtdbSet(rtdbRef(rtdb, `homepage_banners/${banner.id}`), banner);
+    } catch (fbErr) {
+      console.warn("Firebase banner sync note:", fbErr);
+    }
+
     const client = getSupabaseClient();
     if (client) {
       try {
@@ -641,6 +836,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const deleteBanner = async (bannerId: string): Promise<boolean> => {
     setBanners(prev => prev.filter(b => b.id !== bannerId));
+
+    try {
+      await rtdbRemove(rtdbRef(rtdb, `homepage_banners/${bannerId}`));
+    } catch (fbErr) {
+      console.warn("Firebase banner delete note:", fbErr);
+    }
+
     const client = getSupabaseClient();
     if (client) {
       try {
@@ -654,6 +856,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const saveSettings = async (newSettings: StoreSettings): Promise<boolean> => {
     setSettings(newSettings);
+
+    // 1. Firebase RTDB & Firestore sync
+    try {
+      await rtdbSet(rtdbRef(rtdb, 'store_settings'), newSettings);
+      await setDoc(doc(db, 'store_settings', 'primary'), newSettings, { merge: true });
+    } catch (fbErr) {
+      console.warn("Firebase settings sync note:", fbErr);
+    }
+
+    // 2. Supabase sync
     const client = getSupabaseClient();
     if (client) {
       try {
@@ -737,6 +949,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       generateCartWhatsAppMessage,
       adminLogin,
       adminLogout,
+      changeAdminPassword,
       saveProduct,
       deleteProduct,
       saveCategory,
@@ -746,6 +959,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       saveSettings,
       updateOrderStatus,
       uploadProductImage,
+      mediaItems,
+      uploadMediaImage,
+      deleteMediaImage,
       resetToDemoData,
       refreshData: syncFromSupabase
     }}>
