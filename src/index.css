@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-hindi: 'Noto Sans Devanagari', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-heading: 'Cinzel', 'Noto Sans Devanagari', serif;
+  }
+
+  body {
+    font-family: var(--font-hindi);
+    background-color: #FAF8F5;
+    color: #1C1917;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Accessible focus indicators */
+  :focus-visible {
+    outline: 2px solid #C8912E;
+    outline-offset: 2px;
+  }
+}
+
+.font-hindi {
+  font-family: 'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif;
+}
+
+.font-heading {
+  font-family: 'Cinzel', 'Noto Sans Devanagari', serif;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5EFEB;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D5C2AF;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B89C82;
+}
