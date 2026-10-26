@@ -19,6 +19,8 @@ import {
   Globe
 } from 'lucide-react';
 
+import { resolveImageUrl } from '../utils/imageUtils';
+
 interface ProductDetailModalProps {
   product: Product | null;
   onClose: () => void;
@@ -56,7 +58,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [isWhatsAppReviewOpen, setIsWhatsAppReviewOpen] = useState(false);
 
   const isFavorite = isInWishlist(product.id);
-  const allImages = product.images && product.images.length > 0 ? product.images : [product.main_image];
+  const rawImages = product.images && product.images.length > 0 ? product.images : [product.main_image];
+  const allImages = rawImages.map(img => resolveImageUrl(img));
 
   // Deployed production URLs as specified in user request
   const netlifyUrl = `https://sethsanwariyacollection.netlify.app/#product=${product.id}`;

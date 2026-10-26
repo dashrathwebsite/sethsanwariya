@@ -13,6 +13,7 @@ import { getSupabaseClient, getSupabaseConfig } from '../lib/supabase';
 import { db, rtdb, storage, auth, uploadImageToFirebase, firebaseConfig } from '../lib/firebase';
 import { doc, setDoc, deleteDoc, getDocs, collection, updateDoc } from 'firebase/firestore';
 import { ref as rtdbRef, set as rtdbSet, remove as rtdbRemove, onValue as rtdbOnValue } from 'firebase/database';
+import { resolveImageUrl } from '../utils/imageUtils';
 
 interface StoreContextType {
   products: Product[];
@@ -59,6 +60,7 @@ interface StoreContextType {
   deleteBanner: (bannerId: string) => Promise<boolean>;
   mediaItems: MediaItem[];
   uploadMediaImage: (file: File, name?: string) => Promise<MediaItem>;
+  createMediaFromUrl: (url: string, name?: string) => Promise<MediaItem>;
   deleteMediaImage: (id: string) => Promise<boolean>;
   saveSettings: (newSettings: StoreSettings) => Promise<boolean>;
   updateOrderStatus: (orderId: string, status: Order['order_status']) => Promise<boolean>;
@@ -309,7 +311,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           if (val && typeof val === 'object') {
             const list: Product[] = Object.values(val);
             if (list.length > 0) {
-              setProducts(list);
+              setProducts(list.map(p => ({
+                ...p,
+                main_image: resolveImageUrl(p.main_image),
+                images: (p.images || []).map(img => resolveImageUrl(img))
+              })));
               setFirebaseConnected(true);
             }
           }
@@ -326,7 +332,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           if (val && typeof val === 'object') {
             const list: Category[] = Object.values(val);
             if (list.length > 0) {
-              setCategories(list.sort((a, b) => a.display_order - b.display_order));
+              setCategories(list.map(c => ({
+                ...c,
+                image_url: resolveImageUrl(c.image_url)
+              })).sort((a, b) => a.display_order - b.display_order));
             }
           }
         }
@@ -355,7 +364,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           if (val && typeof val === 'object') {
             const list: MediaItem[] = Object.values(val);
             if (list.length > 0) {
-              setMediaItems(list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+              setMediaItems(list.map(m => ({
+                ...m,
+                url: resolveImageUrl(m.url),
+                display_url: resolveImageUrl(m.display_url || m.url)
+              })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
             }
           }
         }
@@ -363,11 +376,31 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         console.warn("Firebase RTDB media listener note:", err.message);
       });
 
+      // 5. Live Homepage Banners listener
+      const bannersRef = rtdbRef(rtdb, 'homepage_banners');
+      const unsubBanners = rtdbOnValue(bannersRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          if (val && typeof val === 'object') {
+            const list: HomepageBanner[] = Object.values(val);
+            if (list.length > 0) {
+              setBanners(list.map(b => ({
+                ...b,
+                image_url: resolveImageUrl(b.image_url)
+              })).sort((a, b) => a.display_order - b.display_order));
+            }
+          }
+        }
+      }, (err) => {
+        console.warn("Firebase RTDB banners listener note:", err.message);
+      });
+
       return () => {
         unsubProducts();
         unsubCategories();
         unsubSettings();
         unsubMedia();
+        unsubBanners();
       };
     } catch (e) {
       console.warn("Firebase RTDB listener setup note:", e);
@@ -693,6 +726,38 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return true;
   };
 
+  // Instant Media creation from direct URL (less than 1 sec upload to Realtime Database)
+  const createMediaFromUrl = async (url: string, name?: string): Promise<MediaItem> => {
+    if (!url || !url.trim()) throw new Error("कृपया मान्य फोटो URL दर्ज करें");
+    const cleanUrl = url.trim();
+    const cleanName = name?.trim() || `image_${Date.now()}.jpg`;
+
+    const newMediaItem: MediaItem = {
+      id: `media-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      url: cleanUrl,
+      display_url: cleanUrl,
+      name: cleanName,
+      created_at: new Date().toISOString(),
+      source: cleanUrl.includes('ibb.co') ? 'imgbb' : 'custom'
+    };
+
+    setMediaItems(prev => [newMediaItem, ...prev.filter(m => m.id !== newMediaItem.id)]);
+
+    try {
+      await rtdbSet(rtdbRef(rtdb, `media_library/${newMediaItem.id}`), newMediaItem);
+    } catch (rtdbErr) {
+      console.warn("RTDB media url sync notice:", rtdbErr);
+    }
+
+    try {
+      await setDoc(doc(db, 'media_library', newMediaItem.id), newMediaItem);
+    } catch (fsErr) {
+      console.warn("Firestore media url persist notice:", fsErr);
+    }
+
+    return newMediaItem;
+  };
+
   // Product Image Upload Handler (uses ImgBB + Realtime Database)
   const uploadProductImage = async (file: File): Promise<string> => {
     const media = await uploadMediaImage(file);
@@ -961,6 +1026,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       uploadProductImage,
       mediaItems,
       uploadMediaImage,
+      createMediaFromUrl,
       deleteMediaImage,
       resetToDemoData,
       refreshData: syncFromSupabase

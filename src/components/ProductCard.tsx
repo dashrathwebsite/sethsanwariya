@@ -4,6 +4,8 @@ import { useStore } from '../context/StoreContext';
 import { WhatsAppPreviewModal } from './WhatsAppPreviewModal';
 import { Heart, MessageCircle, ShoppingCart, ImageOff } from 'lucide-react';
 
+import { resolveImageUrl } from '../utils/imageUtils';
+
 interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
@@ -36,6 +38,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
   const message = generateProductWhatsAppMessage(product, primarySize, primaryColor, 1, window.location.href);
   const link = generateWhatsAppLink(message);
 
+  const resolvedImage = resolveImageUrl(product.main_image);
+
   return (
     <>
       <div 
@@ -44,9 +48,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
       >
         {/* 1. Image Container with Zero-Broken-Image Fallback */}
         <div className="relative aspect-4/3 sm:aspect-1/1 w-full bg-[#F5EFEB] overflow-hidden">
-          {!imageError && product.main_image ? (
+          {!imageError && resolvedImage ? (
             <img
-              src={product.main_image}
+              src={resolvedImage}
               alt={product.name_hi}
               referrerPolicy="no-referrer"
               loading="lazy"

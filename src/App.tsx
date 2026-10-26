@@ -24,25 +24,20 @@ function AppContent() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Three-Slide Animated Welcome Experience state (session-based)
+  // Three-Slide Animated Welcome Experience state (shows on website open and refresh)
   const [showIntro, setShowIntro] = useState<boolean>(() => {
     try {
-      // Respect prefers-reduced-motion
-      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        return false;
-      }
-      // Never show intro if directly navigating to /admin
       if (typeof window !== 'undefined') {
         const path = window.location.pathname;
         const hash = window.location.hash;
         if (path === '/admin' || path.startsWith('/admin') || hash === '#admin') {
           return false;
         }
-        return sessionStorage.getItem('sanwariya_welcome_intro_seen') !== 'true';
+        return true;
       }
-      return false;
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
 

@@ -1,5 +1,12 @@
 import { Category, Product, StoreSettings, HomepageBanner, Order, MediaItem } from '../types';
 
+// Direct module imports for Vite production bundling on Netlify
+import heroImg from '../assets/images/hero_festive_ethnic_1792914844440.jpg';
+import mensImg from '../assets/images/cat_mens_kurta_suit_1792914843627.jpg';
+import sareeImg from '../assets/images/cat_womens_silk_saree_1792914844028.jpg';
+import kurtiImg from '../assets/images/cat_kurti_suit_set_1792914845162.jpg';
+import kidsImg from '../assets/images/cat_kids_ethnic_wear_1792914844788.jpg';
+
 export const INITIAL_SETTINGS: StoreSettings = {
   store_name: "SETH SANWARIYA COLLECTION",
   store_name_hi: "सेठ सांवरिया कलेक्शन",
@@ -33,7 +40,7 @@ export const INITIAL_BANNERS: HomepageBanner[] = [
     title_hi: "शाही विरासत एवं उत्सव कलेक्शन",
     subtitle_hi: "विवाह और त्योहारों के लिए विशेष शेरवानी, कुर्ते व सिल्क साड़ियों की नई श्रृंखला",
     badge_hi: "विशेष नया स्टॉक",
-    image_url: "/src/assets/images/hero_festive_ethnic_1792914844440.jpg",
+    image_url: heroImg || "/images/hero_festive_ethnic_1792914844440.jpg",
     button_text_hi: "अभी देखें और ऑर्डर करें",
     button_link: "/products",
     display_order: 1,
@@ -47,7 +54,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     name_hi: "पुरुषों के कपड़े",
     name_en: "Men's Ethnic & Kurtas",
     slug: "mens-wear",
-    image_url: "/src/assets/images/cat_mens_kurta_suit_1792914843627.jpg",
+    image_url: mensImg || "/images/cat_mens_kurta_suit_1792914843627.jpg",
     description: "पारंपरिक कुर्ते, पायजामा, शेरवानी और उत्सव परिधान",
     display_order: 1,
     is_active: true
@@ -57,7 +64,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     name_hi: "साड़ी और लहंगा",
     name_en: "Sarees & Lehengas",
     slug: "sarees",
-    image_url: "/src/assets/images/cat_womens_silk_saree_1792914844028.jpg",
+    image_url: sareeImg || "/images/cat_womens_silk_saree_1792914844028.jpg",
     description: "बनारसी सिल्क, कांजीवरम और पार्टी वियर साड़ियां",
     display_order: 2,
     is_active: true
@@ -67,7 +74,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     name_hi: "कुर्ती और सूट सेट",
     name_en: "Kurtis & Suits",
     slug: "kurtis-suits",
-    image_url: "/src/assets/images/cat_kurti_suit_set_1792914845162.jpg",
+    image_url: kurtiImg || "/images/cat_kurti_suit_set_1792914845162.jpg",
     description: "अनारकली, स्ट्रेट कुर्ती, दुपट्टा और प्लाज़ो सेट",
     display_order: 3,
     is_active: true
@@ -77,7 +84,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     name_hi: "बच्चों के कपड़े",
     name_en: "Kids Wear",
     slug: "kids-wear",
-    image_url: "/src/assets/images/cat_kids_ethnic_wear_1792914844788.jpg",
+    image_url: kidsImg || "/images/cat_kids_ethnic_wear_1792914844788.jpg",
     description: "लड़कों और लड़कियों के लिए आरामदायक और उत्सव वाले कपड़े",
     display_order: 4,
     is_active: true
@@ -104,9 +111,9 @@ export const INITIAL_PRODUCTS: Product[] = [
       { name_hi: "सुनहरी पीला", hex: "#D49E24" }
     ],
     images: [
-      "/src/assets/images/cat_womens_silk_saree_1792914844028.jpg"
+      sareeImg || "/images/cat_womens_silk_saree_1792914844028.jpg"
     ],
-    main_image: "/src/assets/images/cat_womens_silk_saree_1792914844028.jpg",
+    main_image: sareeImg || "/images/cat_womens_silk_saree_1792914844028.jpg",
     is_featured: true,
     is_new_arrival: true,
     is_active: true,
@@ -131,9 +138,9 @@ export const INITIAL_PRODUCTS: Product[] = [
       { name_hi: "बादामी बेज", hex: "#C7B299" }
     ],
     images: [
-      "/src/assets/images/cat_mens_kurta_suit_1792914843627.jpg"
+      mensImg || "/images/cat_mens_kurta_suit_1792914843627.jpg"
     ],
-    main_image: "/src/assets/images/cat_mens_kurta_suit_1792914843627.jpg",
+    main_image: mensImg || "/images/cat_mens_kurta_suit_1792914843627.jpg",
     is_featured: true,
     is_new_arrival: false,
     is_active: true,
@@ -157,9 +164,9 @@ export const INITIAL_PRODUCTS: Product[] = [
       { name_hi: "आकाशी नीला", hex: "#97C1DF" }
     ],
     images: [
-      "/src/assets/images/cat_kurti_suit_set_1792914845162.jpg"
+      kurtiImg || "/images/cat_kurti_suit_set_1792914845162.jpg"
     ],
-    main_image: "/src/assets/images/cat_kurti_suit_set_1792914845162.jpg",
+    main_image: kurtiImg || "/images/cat_kurti_suit_set_1792914845162.jpg",
     is_featured: true,
     is_new_arrival: true,
     is_active: true,
@@ -183,9 +190,9 @@ export const INITIAL_PRODUCTS: Product[] = [
       { name_hi: "लाल एवं गोल्ड", hex: "#B92837" }
     ],
     images: [
-      "/src/assets/images/cat_kids_ethnic_wear_1792914844788.jpg"
+      kidsImg || "/images/cat_kids_ethnic_wear_1792914844788.jpg"
     ],
-    main_image: "/src/assets/images/cat_kids_ethnic_wear_1792914844788.jpg",
+    main_image: kidsImg || "/images/cat_kids_ethnic_wear_1792914844788.jpg",
     is_featured: false,
     is_new_arrival: true,
     is_active: true,
@@ -209,9 +216,9 @@ export const INITIAL_PRODUCTS: Product[] = [
       { name_hi: "आधी रात नीला", hex: "#151F33" }
     ],
     images: [
-      "/src/assets/images/hero_festive_ethnic_1792914844440.jpg"
+      heroImg || "/images/hero_festive_ethnic_1792914844440.jpg"
     ],
-    main_image: "/src/assets/images/hero_festive_ethnic_1792914844440.jpg",
+    main_image: heroImg || "/images/hero_festive_ethnic_1792914844440.jpg",
     is_featured: true,
     is_new_arrival: false,
     is_active: true,
@@ -239,7 +246,7 @@ export const INITIAL_ORDERS: Order[] = [
         color: "पीकॉक टील",
         price: 3499,
         quantity: 1,
-        image_url: "/src/assets/images/cat_womens_silk_saree_1792914844028.jpg"
+        image_url: sareeImg || "/images/cat_womens_silk_saree_1792914844028.jpg"
       }
     ],
     notes: "WhatsApp पर साइज और डिलीवरी समय की पुष्टि की गई।"
@@ -257,40 +264,40 @@ export const INITIAL_MEDIA_ITEMS: MediaItem[] = [
   },
   {
     id: "media-festive-hero",
-    url: "/src/assets/images/hero_festive_ethnic_1792914844440.jpg",
-    display_url: "/src/assets/images/hero_festive_ethnic_1792914844440.jpg",
+    url: heroImg || "/images/hero_festive_ethnic_1792914844440.jpg",
+    display_url: heroImg || "/images/hero_festive_ethnic_1792914844440.jpg",
     name: "hero_festive_ethnic.jpg",
     created_at: new Date().toISOString(),
     source: "local"
   },
   {
     id: "media-mens-kurta",
-    url: "/src/assets/images/cat_mens_kurta_suit_1792914843627.jpg",
-    display_url: "/src/assets/images/cat_mens_kurta_suit_1792914843627.jpg",
+    url: mensImg || "/images/cat_mens_kurta_suit_1792914843627.jpg",
+    display_url: mensImg || "/images/cat_mens_kurta_suit_1792914843627.jpg",
     name: "cat_mens_kurta.jpg",
     created_at: new Date().toISOString(),
     source: "local"
   },
   {
     id: "media-womens-saree",
-    url: "/src/assets/images/cat_womens_silk_saree_1792914844028.jpg",
-    display_url: "/src/assets/images/cat_womens_silk_saree_1792914844028.jpg",
+    url: sareeImg || "/images/cat_womens_silk_saree_1792914844028.jpg",
+    display_url: sareeImg || "/images/cat_womens_silk_saree_1792914844028.jpg",
     name: "cat_womens_silk_saree.jpg",
     created_at: new Date().toISOString(),
     source: "local"
   },
   {
     id: "media-kurti-suit",
-    url: "/src/assets/images/cat_kurti_suit_set_1792914845162.jpg",
-    display_url: "/src/assets/images/cat_kurti_suit_set_1792914845162.jpg",
+    url: kurtiImg || "/images/cat_kurti_suit_set_1792914845162.jpg",
+    display_url: kurtiImg || "/images/cat_kurti_suit_set_1792914845162.jpg",
     name: "cat_kurti_suit_set.jpg",
     created_at: new Date().toISOString(),
     source: "local"
   },
   {
     id: "media-kids-wear",
-    url: "/src/assets/images/cat_kids_ethnic_wear_1792914844788.jpg",
-    display_url: "/src/assets/images/cat_kids_ethnic_wear_1792914844788.jpg",
+    url: kidsImg || "/images/cat_kids_ethnic_wear_1792914844788.jpg",
+    display_url: kidsImg || "/images/cat_kids_ethnic_wear_1792914844788.jpg",
     name: "cat_kids_ethnic_wear.jpg",
     created_at: new Date().toISOString(),
     source: "local"

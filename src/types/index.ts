@@ -113,5 +113,5 @@ export interface MediaItem {
   name: string;
   size?: number;
   created_at: string;
-  source: 'imgbb' | 'firebase' | 'local';
+  source: 'imgbb' | 'firebase' | 'local' | 'custom';
 }

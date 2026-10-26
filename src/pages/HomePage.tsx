@@ -5,6 +5,7 @@ import { CategoryCard } from '../components/CategoryCard';
 import { StoreStatusBadge } from '../components/StoreStatusBadge';
 import { WhatsAppPreviewModal } from '../components/WhatsAppPreviewModal';
 import { Product } from '../types';
+import { resolveImageUrl } from '../utils/imageUtils';
 import { 
   Sparkles, 
   ArrowRight, 
@@ -37,38 +38,126 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
   const generalInquiryMsg = `नमस्ते सेठ सांवरिया कलेक्शन! 🙏\n\nमुझे आपके नए कपड़ों के कलेक्शन के बारे में जानकारी चाहिए।\nकृपया उपलब्ध कैटलॉग साझा करें।`;
   const generalWhatsAppUrl = generateWhatsAppLink(generalInquiryMsg);
 
+  const logoUrl = settings.logo_url || "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png";
+  const heroImageUrl = resolveImageUrl(mainBanner?.image_url) || "/images/hero_festive_ethnic_1792914844440.jpg";
+
   return (
-    <div className="space-y-12 sm:space-y-16 pb-12">
+    <div className="space-y-10 sm:space-y-16 pb-12 w-full max-w-full overflow-x-hidden">
       
-      {/* 1. HERO CAMPAIGN BANNER (Complying with layout rules & anti-slop guidelines) */}
+      {/* 0. GRAND 3D CENTER LOGO & ROYAL STORE SHOWCASE */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#0F0C09] via-[#1A130D] to-[#120D08] text-white pt-8 pb-10 px-4 border-b border-[#D4AF37]/30 shadow-2xl">
+        {/* Subtle Ambient Radial Illumination */}
+        <div className="absolute inset-0 bg-radial from-[#D4AF37]/15 via-transparent to-transparent pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto flex flex-col items-center text-center relative z-10 space-y-4">
+          
+          {/* Big 3D Circular Logo with Concentric Metallic Gold Rings */}
+          <div className="relative group">
+            {/* Ambient Gold Radial Glow */}
+            <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-[#D4AF37] via-[#FFF3C4] to-[#B45309] opacity-45 blur-2xl animate-pulse pointer-events-none" />
+            
+            {/* Outer 3D Gold Beveled Ring */}
+            <div className="relative w-32 h-32 sm:w-44 sm:h-44 rounded-full p-1.5 bg-gradient-to-b from-[#FFF5DA] via-[#D4AF37] to-[#4A3222] shadow-[0_14px_45px_rgba(212,175,55,0.45),inset_0_2px_8px_rgba(255,255,255,0.7)] flex items-center justify-center">
+              <div className="w-full h-full rounded-full overflow-hidden bg-[#120D08] flex items-center justify-center border-2 border-[#E2B158]/70 shadow-inner">
+                <img
+                  src={logoUrl}
+                  alt="SETH SANWARIYA COLLECTION"
+                  className="w-full h-full object-contain rounded-full p-1 transition-transform duration-700 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3D Gold Typography */}
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-heading font-extrabold tracking-[0.14em] text-transparent bg-clip-text bg-gradient-to-b from-[#FFFDF0] via-[#E2B158] to-[#996D1E] drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] uppercase leading-tight">
+              SETH SANWARIYA
+              <span className="block text-xl sm:text-3xl tracking-[0.22em] font-light text-[#E5C178] mt-1">
+                COLLECTION
+              </span>
+            </h1>
+            <p className="text-base sm:text-xl font-hindi font-bold text-[#F3E8D8] tracking-wide pt-1">
+              सेठ सांवरिया कलेक्शन
+            </p>
+            <p className="text-xs sm:text-sm font-hindi text-[#D4AF37] font-semibold">
+              कातर छोटी, राजस्थान – 331517 (Katar Chhoti, Rajasthan)
+            </p>
+          </div>
+
+          {/* Live Store Timings Pill */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <StoreStatusBadge />
+            <span className="text-xs text-[#D5C2AF] font-hindi bg-[#241A12] px-3 py-1 rounded-full border border-[#D4AF37]/30">
+              सुबह 8:00 AM से रात 10:00 PM · सातों दिन खुली है
+            </span>
+          </div>
+
+          {/* Quick Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => onNavigate('products')}
+              className="px-6 py-3 bg-gradient-to-r from-[#E2B158] to-[#D49E24] hover:from-[#F3D082] hover:to-[#E2B158] text-[#1C1917] rounded-xl font-bold font-hindi text-xs sm:text-sm shadow-lg shadow-[#D4AF37]/25 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <span>कलेक्शन देखें (Browse)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsGeneralWhatsAppOpen(true)}
+              className="px-5 py-3 bg-[#25D366] hover:bg-[#20BA5A] text-[#0A2914] rounded-xl font-bold font-hindi text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <MessageCircle className="w-4 h-4 text-[#0A2914]" />
+              <span>WhatsApp पर ऑर्डर करें</span>
+            </button>
+
+            <a
+              href="tel:+918529095431"
+              className="px-4 py-3 bg-[#241B13] hover:bg-[#34271B] text-[#E2B158] border border-[#D4AF37]/40 rounded-xl font-bold font-hindi text-xs sm:text-sm transition-all flex items-center gap-2 active:scale-95"
+            >
+              <Phone className="w-4 h-4" />
+              <span>+91 8529095431</span>
+            </a>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 1. HERO CAMPAIGN BANNER */}
       <section className="relative overflow-hidden bg-[#1C1917] text-white">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[460px] lg:min-h-[520px] items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[440px] lg:min-h-[500px] items-stretch">
             
             {/* Left Content Column */}
-            <div className="lg:col-span-6 flex flex-col justify-center p-6 sm:p-10 lg:p-14 z-10 space-y-6">
+            <div className="lg:col-span-6 flex flex-col justify-center p-6 sm:p-10 lg:p-14 z-10 space-y-5">
               
               <div className="flex flex-wrap items-center gap-3">
-                <StoreStatusBadge />
-                <span className="text-xs text-[#E2B158] font-bold font-hindi">
-                  ✨ सेठ सांवरिया कलेक्शन
+                <span className="text-xs text-[#E2B158] font-bold font-hindi bg-[#2E2824] px-3 py-1 rounded-full border border-[#443B33]">
+                  ✨ नया उत्सव स्टॉक
+                </span>
+                <span className="text-xs text-[#D5C2AF] font-hindi">
+                  कातर छोटी, राजस्थान
                 </span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-hindi leading-tight tracking-tight text-white max-w-xl">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-hindi leading-tight tracking-tight text-white max-w-xl">
                 {mainBanner?.title_hi || "शाही विरासत एवं उत्सव कलेक्शन"}
-              </h1>
+              </h2>
 
               <p className="text-sm sm:text-base text-[#D5C2AF] font-hindi leading-relaxed max-w-lg">
                 {mainBanner?.subtitle_hi || "विवाह, त्योहार और विशेष अवसरों के लिए प्रामाणिक शेरवानी, कुर्ते व सिल्क साड़ियों की नई श्रृंखला।"}
               </p>
 
-              {/* Action Buttons as requested in prompt: "कलेक्शन देखें" & "WhatsApp पर ऑर्डर करें" */}
+              {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => onNavigate('products')}
-                  className="px-6 py-3.5 bg-[#E2B158] hover:bg-[#D49E24] text-[#1C1917] rounded-xl font-bold font-hindi text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-3.5 bg-[#E2B158] hover:bg-[#D49E24] text-[#1C1917] rounded-xl font-bold font-hindi text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <span>कलेक्शन देखें</span>
                   <ArrowRight className="w-4 h-4" />
@@ -77,7 +166,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
                 <button
                   type="button"
                   onClick={() => setIsGeneralWhatsAppOpen(true)}
-                  className="px-5 py-3.5 bg-[#2E2824] hover:bg-[#3D352F] text-white rounded-xl font-semibold font-hindi text-sm border border-[#524840] transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-3.5 bg-[#2E2824] hover:bg-[#3D352F] text-white rounded-xl font-semibold font-hindi text-sm border border-[#524840] transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <MessageCircle className="w-4 h-4 text-[#4ADE80]" />
                   <span>WhatsApp पर ऑर्डर करें</span>
@@ -101,9 +190,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
             </div>
 
             {/* Right Media Column */}
-            <div className="lg:col-span-6 relative min-h-[300px] lg:min-h-full bg-[#2E2824]">
+            <div className="lg:col-span-6 relative min-h-[280px] lg:min-h-full bg-[#2E2824]">
               <img
-                src={mainBanner?.image_url || "/src/assets/images/hero_festive_ethnic_1792914844440.jpg"}
+                src={heroImageUrl}
                 alt="सेठ सांवरिया कलेक्शन"
                 className="w-full h-full object-cover object-center"
               />
@@ -203,7 +292,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
               <button
                 type="button"
                 onClick={() => setIsGeneralWhatsAppOpen(true)}
-                className="px-5 py-3 bg-[#25D366] hover:bg-[#20BA5A] text-[#0A2914] rounded-xl font-bold font-hindi text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                className="px-5 py-3 bg-[#25D366] hover:bg-[#20BA5A] text-[#0A2914] rounded-xl font-bold font-hindi text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
               >
                 <MessageCircle className="w-5 h-5 text-[#0A2914]" />
                 <span>अभी WhatsApp पर बात करें</span>
@@ -211,7 +300,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
 
               <a
                 href="tel:+918529095431"
-                className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold font-hindi text-sm transition-all flex items-center gap-2"
+                className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold font-hindi text-sm transition-all flex items-center gap-2 active:scale-95"
               >
                 <Phone className="w-4 h-4 text-[#E2B158]" />
                 <span>फोन करें: +91 8529095431</span>
@@ -221,7 +310,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
         </div>
       </section>
 
-      {/* 5. NEW ARRIVALS (नए कपड़े) */}
+      {/* 5. NEW ARRIVALS */}
       {newArrivals.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6 sm:mb-8">
@@ -270,7 +359,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
                 कपड़े को प्रत्यक्ष रूप से देखकर, फैब्रिक की शुद्धता जांचकर और ट्रायल करके संतुष्टि के साथ खरीदें।
               </p>
 
-              {/* Exact required wording from Section 5 */}
+              {/* Exact required wording */}
               <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#E8DFD5] space-y-2 font-hindi">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -290,7 +379,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
               {/* Address and Phone */}
               <div className="space-y-2.5 pt-1 text-xs sm:text-sm font-hindi">
                 <div className="flex items-start gap-2.5 text-[#57534E]">
-                  <Phone className="w-4 h-4 text-[#9A6B1F] shrink-0 mt-0.5" />
+                  <Phone className="w-4 h-4 text-[#9A6B1F]" />
                   <div>
                     <strong className="text-[#1C1917]">फ़ोन व WhatsApp: </strong>
                     <a href="tel:+918529095431" className="hover:underline font-semibold text-[#1C1917]">
@@ -300,7 +389,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
                 </div>
 
                 <div className="flex items-start gap-2.5 text-[#57534E]">
-                  <MapPin className="w-4 h-4 text-[#9A6B1F] shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 text-[#9A6B1F]" />
                   <div>
                     <strong className="text-[#1C1917]">दुकान का पता: </strong>
                     <span>{settings.address_hi}</span>
@@ -314,7 +403,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
                   href="https://maps.app.goo.gl/NQzTTJeZxeSj55bj8"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-5 py-3 bg-[#1C1917] hover:bg-[#2E2824] text-white rounded-xl text-xs sm:text-sm font-bold font-hindi transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
+                  className="px-5 py-3 bg-[#1C1917] hover:bg-[#2E2824] text-white rounded-xl text-xs sm:text-sm font-bold font-hindi transition-colors flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
                 >
                   <MapPin className="w-4 h-4 text-[#E2B158]" />
                   <span>दुकान का रास्ता देखें (Google Maps)</span>
@@ -331,14 +420,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
               </div>
             </div>
 
-            {/* Right Promo Box with Socials */}
+            {/* Right Promo Box with 3D Circular Logo and Socials */}
             <div className="lg:col-span-5 bg-[#FAF8F5] rounded-2xl p-6 border border-[#E8DFD5] text-center space-y-4">
-              <div className="relative w-16 h-16 rounded-full p-0.5 bg-gradient-to-b from-[#E2B158] via-[#B8860B] to-[#5C4033] shadow-md flex items-center justify-center mx-auto">
+              <div className="relative w-20 h-20 rounded-full p-1 bg-gradient-to-b from-[#FFF5DA] via-[#E2B158] to-[#4A3222] shadow-[0_4px_16px_rgba(226,177,88,0.3)] flex items-center justify-center mx-auto">
                 <div className="w-full h-full rounded-full overflow-hidden bg-[#120D08] flex items-center justify-center border border-[#E2B158]/50">
                   <img
-                    src={settings.logo_url || "https://oendmrjwkhwxrfphvedl.supabase.co/storage/v1/object/public/sethsanwariya/logo.png"}
+                    src={logoUrl}
                     alt="SETH SANWARIYA COLLECTION"
-                    className="w-full h-full object-contain rounded-full p-0.5"
+                    className="w-full h-full object-contain rounded-full p-1"
                   />
                 </div>
               </div>

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Category } from '../types';
 import { ImageOff, ArrowRight } from 'lucide-react';
 
+import { resolveImageUrl } from '../utils/imageUtils';
+
 interface CategoryCardProps {
   category: Category;
   onClick: (categoryId: string) => void;
@@ -10,6 +12,7 @@ interface CategoryCardProps {
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onClick, count }) => {
   const [imageError, setImageError] = useState(false);
+  const resolvedImage = resolveImageUrl(category.image_url);
 
   return (
     <div
@@ -17,9 +20,9 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onClick, c
       className="group relative flex flex-col bg-white rounded-xl border border-[#E8DFD5] overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer text-left"
     >
       <div className="relative aspect-4/3 w-full bg-[#F5EFEB] overflow-hidden">
-        {!imageError && category.image_url ? (
+        {!imageError && resolvedImage ? (
           <img
-            src={category.image_url}
+            src={resolvedImage}
             alt={category.name_hi}
             referrerPolicy="no-referrer"
             loading="lazy"
