@@ -60,6 +60,24 @@ function AppContent() {
     }
   });
 
+  // Strict scroll lock when Welcome Intro is visible (prevents mobile horizontal panning)
+  useEffect(() => {
+    if (showIntro) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [showIntro]);
+
   // Handle URL pathname (/admin), hash routing, and deep-linked product modal
   useEffect(() => {
     const handleUrlRouting = () => {
@@ -154,7 +172,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#1C1917] selection:bg-[#E2B158]/30 selection:text-[#1C1917]">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden flex flex-col bg-[#FAF8F5] text-[#1C1917] selection:bg-[#E2B158]/30 selection:text-[#1C1917] relative">
       
       {/* 1. Three-Slide Animated Welcome Experience (Full-screen intro before website entry) */}
       {showIntro && (
@@ -175,7 +193,7 @@ function AppContent() {
       />
 
       {/* 3. Main Content Router with bottom padding so Fixed Mobile Contact Bar never covers content */}
-      <main className="flex-1 pb-20 md:pb-6">
+      <main className="flex-1 pb-20 md:pb-6 w-full max-w-[100vw] overflow-x-hidden">
         {currentTab === 'home' && (
           <HomePage
             onNavigate={handleNavigate}

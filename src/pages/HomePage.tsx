@@ -72,14 +72,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectProduct 
           </div>
 
           {/* 3D Gold Typography */}
-          <div className="space-y-1">
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-heading font-extrabold tracking-[0.14em] text-transparent bg-clip-text bg-gradient-to-b from-[#FFFDF0] via-[#E2B158] to-[#996D1E] drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] uppercase leading-tight">
+          <div className="space-y-1 w-full max-w-full px-2">
+            <h1 className="text-xl xs:text-2xl sm:text-4xl md:text-5xl font-heading font-extrabold tracking-wider sm:tracking-[0.14em] text-transparent bg-clip-text bg-gradient-to-b from-[#FFFDF0] via-[#E2B158] to-[#996D1E] drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] uppercase leading-tight break-words">
               SETH SANWARIYA
-              <span className="block text-xl sm:text-3xl tracking-[0.22em] font-light text-[#E5C178] mt-1">
+              <span className="block text-lg xs:text-xl sm:text-3xl tracking-widest sm:tracking-[0.22em] font-light text-[#E5C178] mt-1">
                 COLLECTION
               </span>
             </h1>
-            <p className="text-base sm:text-xl font-hindi font-bold text-[#F3E8D8] tracking-wide pt-1">
+            <p className="text-sm xs:text-base sm:text-xl font-hindi font-bold text-[#F3E8D8] tracking-wide pt-1">
               सेठ सांवरिया कलेक्शन
             </p>
             <p className="text-xs sm:text-sm font-hindi text-[#D4AF37] font-semibold">
