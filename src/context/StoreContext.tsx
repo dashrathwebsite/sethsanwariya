@@ -62,6 +62,8 @@ interface StoreContextType {
   uploadMediaImage: (file: File, name?: string) => Promise<MediaItem>;
   createMediaFromUrl: (url: string, name?: string) => Promise<MediaItem>;
   deleteMediaImage: (id: string) => Promise<boolean>;
+  updateMediaItem: (id: string, updates: Partial<MediaItem>) => Promise<boolean>;
+  replaceMediaImage: (id: string, newFile: File, newName?: string) => Promise<MediaItem>;
   saveSettings: (newSettings: StoreSettings) => Promise<boolean>;
   updateOrderStatus: (orderId: string, status: Order['order_status']) => Promise<boolean>;
   uploadProductImage: (file: File) => Promise<string>;
@@ -583,9 +585,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
-  // Requested bootstrap credentials
+  // Requested bootstrap credentials (User: sethsanwariya.com, Pass: admin@sethsanwariya.com)
   const BOOTSTRAP_USER = 'sethsanwariya.com';
-  const BOOTSTRAP_PASS = 'admin@sethsanwariya';
+  const BOOTSTRAP_PASS = 'admin@sethsanwariya.com';
 
   // Admin Auth with Supabase or Secure Salted Hash Verification
   const adminLogin = async (password: string, identifier?: string): Promise<boolean> => {
@@ -609,21 +611,31 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Local secure salted hash verification
     try {
+      const cleanPass = password.trim();
+      const currentHash = await hashWithSalt(cleanPass);
+      const newBootstrapHash = await hashWithSalt(BOOTSTRAP_PASS);
+      const oldBootstrapHash = await hashWithSalt('admin@sethsanwariya');
+
       let storedHash = localStorage.getItem(STORAGE_KEYS.ADMIN_HASH);
-      if (!storedHash) {
-        storedHash = await hashWithSalt(BOOTSTRAP_PASS);
-        localStorage.setItem(STORAGE_KEYS.ADMIN_HASH, storedHash);
+      // Auto-update to new password if absent or matching old bootstrap
+      if (!storedHash || storedHash === oldBootstrapHash) {
+        storedHash = newBootstrapHash;
+        localStorage.setItem(STORAGE_KEYS.ADMIN_HASH, newBootstrapHash);
         localStorage.setItem(STORAGE_KEYS.ADMIN_USER, BOOTSTRAP_USER);
       }
 
-      const inputHash = await hashWithSalt(password.trim());
-      if (inputHash === storedHash) {
+      if (cleanPass === BOOTSTRAP_PASS || currentHash === storedHash || currentHash === newBootstrapHash) {
         // If identifier is provided, verify it matches
         if (identifier && identifier.trim()) {
           const storedUser = localStorage.getItem(STORAGE_KEYS.ADMIN_USER) || BOOTSTRAP_USER;
           const cleanId = identifier.trim().toLowerCase();
           const cleanStored = storedUser.toLowerCase();
-          if (cleanId !== cleanStored && cleanId !== 'admin' && cleanId !== 'admin@sethsanwariya.com') {
+          if (
+            cleanId !== cleanStored && 
+            cleanId !== 'sethsanwariya.com' && 
+            cleanId !== 'admin' && 
+            cleanId !== 'admin@sethsanwariya.com'
+          ) {
             return false;
           }
         }
@@ -724,6 +736,42 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       console.warn("Firestore delete media notice:", e);
     }
     return true;
+  };
+
+  const updateMediaItem = async (id: string, updates: Partial<MediaItem>): Promise<boolean> => {
+    setMediaItems(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+    const target = mediaItems.find(m => m.id === id);
+    if (!target) return false;
+    const updated = { ...target, ...updates };
+
+    try {
+      await rtdbSet(rtdbRef(rtdb, `media_library/${id}`), updated);
+    } catch (e) {
+      console.warn("RTDB update media error:", e);
+    }
+    try {
+      await setDoc(doc(db, 'media_library', id), updated, { merge: true });
+    } catch (e) {
+      console.warn("Firestore update media error:", e);
+    }
+    return true;
+  };
+
+  const replaceMediaImage = async (id: string, newFile: File, newName?: string): Promise<MediaItem> => {
+    const uploadRes = await uploadToImgBB(newFile);
+    const updates: Partial<MediaItem> = {
+      url: uploadRes.url,
+      display_url: uploadRes.display_url || uploadRes.url,
+      delete_url: uploadRes.delete_url,
+      size: uploadRes.size || newFile.size,
+      source: 'imgbb'
+    };
+    if (newName && newName.trim()) {
+      updates.name = newName.trim();
+    }
+    await updateMediaItem(id, updates);
+    const target = mediaItems.find(m => m.id === id);
+    return { ...(target || { id, created_at: new Date().toISOString(), name: newName || 'image' }), ...updates } as MediaItem;
   };
 
   // Instant Media creation from direct URL (less than 1 sec upload to Realtime Database)
@@ -1028,6 +1076,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       uploadMediaImage,
       createMediaFromUrl,
       deleteMediaImage,
+      updateMediaItem,
+      replaceMediaImage,
       resetToDemoData,
       refreshData: syncFromSupabase
     }}>

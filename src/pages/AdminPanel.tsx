@@ -51,6 +51,8 @@ export const AdminPanel: React.FC = () => {
     uploadMediaImage,
     createMediaFromUrl,
     deleteMediaImage,
+    updateMediaItem,
+    replaceMediaImage,
     isAdminAuthenticated, 
     adminLogin, 
     adminLogout,
@@ -89,6 +91,23 @@ export const AdminPanel: React.FC = () => {
   const [copiedMediaId, setCopiedMediaId] = useState<string | null>(null);
   const [mediaSearch, setMediaSearch] = useState('');
   const [mediaPickerTarget, setMediaPickerTarget] = useState<'product_main' | 'category' | 'banner' | null>(null);
+
+  // Advanced Upload Destination Config (Upload directly to Category, Product, Banner, or Gallery)
+  const [uploadDestination, setUploadDestination] = useState<'gallery' | 'product' | 'category' | 'banner'>('gallery');
+  const [targetCategoryId, setTargetCategoryId] = useState<string>('');
+  const [targetProductPrice, setTargetProductPrice] = useState<number>(999);
+  const [targetProductMRP, setTargetProductMRP] = useState<number>(1499);
+  const [targetCategoryAction, setTargetCategoryAction] = useState<'update_existing' | 'new'>('update_existing');
+  const [selectedTargetCatId, setSelectedTargetCatId] = useState<string>('');
+  const [newCatNameHi, setNewCatNameHi] = useState<string>('');
+  const [newCatNameEn, setNewCatNameEn] = useState<string>('');
+  const [targetBannerTitle, setTargetBannerTitle] = useState<string>('शाही विरासत कलेक्शन');
+  const [targetBannerSubtitle, setTargetBannerSubtitle] = useState<string>('विवाह व त्योहारों के लिए विशेष श्रृंखला');
+
+  // Edit Existing Media Item Modal
+  const [editingMediaItem, setEditingMediaItem] = useState<MediaItem | null>(null);
+  const [editingMediaTitle, setEditingMediaTitle] = useState<string>('');
+  const [isReplacingMedia, setIsReplacingMedia] = useState<boolean>(false);
 
   // Form states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -214,7 +233,75 @@ export const AdminPanel: React.FC = () => {
 
   const showToast = (msg: string) => {
     setSaveSuccessMsg(msg);
-    setTimeout(() => setSaveSuccessMsg(''), 3000);
+    setTimeout(() => setSaveSuccessMsg(''), 3500);
+  };
+
+  const handleApplyImageToDestination = async (mediaUrl: string, mediaTitle: string) => {
+    if (uploadDestination === 'product') {
+      const catId = targetCategoryId || categories[0]?.id || '';
+      const prodName = mediaTitle.trim() || 'नया आकर्षक परिधान';
+      const newProduct: Product = {
+        id: `prod-${Date.now()}`,
+        name_hi: prodName,
+        name_en: '',
+        slug: `cloth-${Date.now()}`,
+        category_id: catId,
+        description_hi: `${prodName} - उच्च गुणवत्ता व प्रामाणिक राजस्थानी परिधान संग्रह।`,
+        price: Number(targetProductPrice) || 999,
+        original_price: Number(targetProductMRP) || 1499,
+        discount_percent: Math.round(((Number(targetProductMRP) - Number(targetProductPrice)) / (Number(targetProductMRP) || 1)) * 100) || 33,
+        sku: `SS-${Math.floor(100 + Math.random() * 900)}`,
+        stock_quantity: 12,
+        sizes: ['M', 'L', 'XL'],
+        colors: [{ name_hi: 'क्रीम/गोल्डन', hex: '#EADDC6' }],
+        images: [mediaUrl],
+        main_image: mediaUrl,
+        is_featured: true,
+        is_new_arrival: true,
+        is_active: true,
+        created_at: new Date().toISOString()
+      };
+      await saveProduct(newProduct);
+      showToast(`कपड़ा "${newProduct.name_hi}" श्रेणी में सीधे लाइव हो गया!`);
+    } else if (uploadDestination === 'category') {
+      if (targetCategoryAction === 'new' && newCatNameHi.trim()) {
+        const newCat: Category = {
+          id: `cat-${Date.now()}`,
+          name_hi: newCatNameHi.trim(),
+          name_en: newCatNameEn.trim() || undefined,
+          slug: `category-${Date.now()}`,
+          image_url: mediaUrl,
+          display_order: categories.length + 1,
+          is_active: true
+        };
+        await saveCategory(newCat);
+        setNewCatNameHi('');
+        setNewCatNameEn('');
+        showToast(`नई श्रेणी "${newCat.name_hi}" फोटो के साथ तुरंत लाइव हो गई!`);
+      } else {
+        const cat = categories.find(c => c.id === selectedTargetCatId) || categories[0];
+        if (cat) {
+          await saveCategory({ ...cat, image_url: mediaUrl });
+          showToast(`श्रेणी "${cat.name_hi}" की फोटो अपडेट होकर लाइव हो गई!`);
+        }
+      }
+    } else if (uploadDestination === 'banner') {
+      const newBanner: HomepageBanner = {
+        id: `banner-${Date.now()}`,
+        title_hi: targetBannerTitle.trim() || mediaTitle.trim() || 'शाही विरासत कलेक्शन',
+        subtitle_hi: targetBannerSubtitle.trim() || 'विवाह और त्योहारों के लिए विशेष श्रृंखला',
+        badge_hi: 'विशेष नया स्टॉक',
+        image_url: mediaUrl,
+        button_text_hi: 'कलेक्शन देखें',
+        button_link: '/products',
+        display_order: banners.length + 1,
+        is_active: true
+      };
+      await saveBanner(newBanner);
+      showToast(`होमपेज बैनर "${newBanner.title_hi}" तुरंत लाइव हो गया!`);
+    } else {
+      showToast(`फोटो "${mediaTitle || 'इमेज'}" मीडिया लाइब्रेरी में सुरक्षित व लाइव हो गई!`);
+    }
   };
 
   // Real database metrics (Section 7 Dashboard)
@@ -461,6 +548,163 @@ export const AdminPanel: React.FC = () => {
               </button>
             </div>
 
+            {/* Destination Configuration: choose Gallery, Product, Category, or Banner */}
+            <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E8DFD5] mt-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-bold font-hindi text-[#1C1917] flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-[#9A6B1F]" />
+                  <span>फ़ोटो कहाँ सेट करनी है? (Choose Destination / Page / Category):</span>
+                </label>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 text-xs font-hindi">
+                  {[
+                    { id: 'gallery', label: 'केवल मीडिया गैलरी' },
+                    { id: 'product', label: '👗 कपड़े/उत्पाद में जोड़ें' },
+                    { id: 'category', label: '📁 श्रेणी में लगाएं' },
+                    { id: 'banner', label: '🚩 होमपेज बैनर में लगाएं' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setUploadDestination(tab.id as any)}
+                      className={`px-2.5 py-1 rounded-lg font-semibold text-xs transition-colors cursor-pointer ${
+                        uploadDestination === tab.id
+                          ? 'bg-[#1C1917] text-white shadow-xs'
+                          : 'bg-white text-[#57534E] border border-[#D5C7B8] hover:bg-[#F5EFEB]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sub-options for Product */}
+              {uploadDestination === 'product' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-[#E8DFD5] text-xs font-hindi animate-in fade-in">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">श्रेणी चुनें (Select Category) *</label>
+                    <select
+                      value={targetCategoryId || categories[0]?.id || ''}
+                      onChange={(e) => setTargetCategoryId(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                    >
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name_hi}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">बिक्री मूल्य (Price ₹) *</label>
+                    <input
+                      type="number"
+                      value={targetProductPrice}
+                      onChange={(e) => setTargetProductPrice(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">मूल मूल्य (MRP ₹)</label>
+                    <input
+                      type="number"
+                      value={targetProductMRP}
+                      onChange={(e) => setTargetProductMRP(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-options for Category */}
+              {uploadDestination === 'category' && (
+                <div className="pt-2 border-t border-[#E8DFD5] text-xs font-hindi space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="catActionDashboard"
+                        checked={targetCategoryAction === 'update_existing'}
+                        onChange={() => setTargetCategoryAction('update_existing')}
+                      />
+                      <span>मौजूदा श्रेणी की फ़ोटो बदलें</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="catActionDashboard"
+                        checked={targetCategoryAction === 'new'}
+                        onChange={() => setTargetCategoryAction('new')}
+                      />
+                      <span>नई श्रेणी बनाएं</span>
+                    </label>
+                  </div>
+
+                  {targetCategoryAction === 'update_existing' ? (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">श्रेणी चुनें *</label>
+                      <select
+                        value={selectedTargetCatId || categories[0]?.id || ''}
+                        onChange={(e) => setSelectedTargetCatId(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                      >
+                        {categories.map(c => (
+                          <option key={c.id} value={c.id}>{c.name_hi}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">नई श्रेणी का नाम (हिंदी) *</label>
+                        <input
+                          type="text"
+                          placeholder="उदा. जोधपुरी साफे व पगड़ी"
+                          value={newCatNameHi}
+                          onChange={(e) => setNewCatNameHi(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">अंग्रेजी नाम (वैकल्पिक)</label>
+                        <input
+                          type="text"
+                          placeholder="Jodhpuri Turbans"
+                          value={newCatNameEn}
+                          onChange={(e) => setNewCatNameEn(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white font-sans"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sub-options for Banner */}
+              {uploadDestination === 'banner' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-[#E8DFD5] text-xs font-hindi animate-in fade-in">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">बैनर शीर्षक *</label>
+                    <input
+                      type="text"
+                      value={targetBannerTitle}
+                      onChange={(e) => setTargetBannerTitle(e.target.value)}
+                      placeholder="उदा. शाही विरासत कलेक्शन"
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">उपशीर्षक</label>
+                    <input
+                      type="text"
+                      value={targetBannerSubtitle}
+                      onChange={(e) => setTargetBannerSubtitle(e.target.value)}
+                      placeholder="विवाह व उत्सवों के लिए विशेष"
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
               {/* Option A: Direct File Upload */}
               <div className="bg-white rounded-xl border border-[#E8DFD5] p-4 flex flex-col justify-between space-y-3">
@@ -485,7 +729,7 @@ export const AdminPanel: React.FC = () => {
                     ) : (
                       <Upload className="w-4 h-4 text-[#E2B158]" />
                     )}
-                    <span>{isMediaUploading ? 'अपलोड व RTDB लाइव हो रहा है...' : 'फ़ाइल चुनें व तुरंत लाइव करें (< 1s)'}</span>
+                    <span>{isMediaUploading ? 'अपलोड व लाइव हो रहा है...' : 'फ़ाइल चुनें व तुरंत लाइव करें (< 1s)'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -497,8 +741,8 @@ export const AdminPanel: React.FC = () => {
                           setIsMediaUploading(true);
                           try {
                             const item = await uploadMediaImage(file, mediaUploadTitle.trim() || undefined);
+                            await handleApplyImageToDestination(item.url, item.name);
                             setMediaUploadTitle('');
-                            showToast(`फोटो "${item.name}" सफलतापूर्वक अपलोड होकर लाइव हो गई!`);
                           } catch (err: any) {
                             alert(err.message || "इमेज अपलोड में समस्या आई।");
                           } finally {
@@ -547,9 +791,9 @@ export const AdminPanel: React.FC = () => {
                       setIsAddingDirectUrl(true);
                       try {
                         const item = await createMediaFromUrl(directMediaUrl.trim(), directMediaTitle.trim() || undefined);
+                        await handleApplyImageToDestination(item.url, item.name);
                         setDirectMediaUrl('');
                         setDirectMediaTitle('');
-                        showToast(`URL से फोटो "${item.name}" लाइव हो गई!`);
                       } catch (err: any) {
                         alert(err.message || "इमेज जोड़ने में समस्या आई।");
                       } finally {
@@ -674,12 +918,169 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Dual Upload Widget */}
+          {/* Dual Upload Widget with Destination Selection */}
           <div className="bg-white rounded-2xl border border-[#E8DFD5] p-5 shadow-xs">
             <h3 className="font-bold text-sm font-hindi text-[#1C1917] mb-3 flex items-center gap-2">
               <Zap className="w-4 h-4 text-[#9A6B1F]" />
-              <span>नयी फ़ोटो जोड़ें (Upload or Add URL)</span>
+              <span>नयी फ़ोटो जोड़ें व श्रेणी/पेज चुनें (Upload or Add URL)</span>
             </h3>
+
+            {/* Destination Configuration */}
+            <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E8DFD5] mb-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-bold font-hindi text-[#1C1917] flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-[#9A6B1F]" />
+                  <span>फ़ोटो कहाँ सेट करनी है? (Select Destination / Page / Category):</span>
+                </label>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 text-xs font-hindi">
+                  {[
+                    { id: 'gallery', label: 'केवल मीडिया गैलरी' },
+                    { id: 'product', label: '👗 कपड़े/उत्पाद में जोड़ें' },
+                    { id: 'category', label: '📁 श्रेणी में लगाएं' },
+                    { id: 'banner', label: '🚩 होमपेज बैनर में लगाएं' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setUploadDestination(tab.id as any)}
+                      className={`px-2.5 py-1 rounded-lg font-semibold text-xs transition-colors cursor-pointer ${
+                        uploadDestination === tab.id
+                          ? 'bg-[#1C1917] text-white shadow-xs'
+                          : 'bg-white text-[#57534E] border border-[#D5C7B8] hover:bg-[#F5EFEB]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sub-options for Product */}
+              {uploadDestination === 'product' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-[#E8DFD5] text-xs font-hindi animate-in fade-in">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">श्रेणी चुनें (Select Category) *</label>
+                    <select
+                      value={targetCategoryId || categories[0]?.id || ''}
+                      onChange={(e) => setTargetCategoryId(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                    >
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name_hi}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">बिक्री मूल्य (Price ₹) *</label>
+                    <input
+                      type="number"
+                      value={targetProductPrice}
+                      onChange={(e) => setTargetProductPrice(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">मूल मूल्य (MRP ₹)</label>
+                    <input
+                      type="number"
+                      value={targetProductMRP}
+                      onChange={(e) => setTargetProductMRP(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-options for Category */}
+              {uploadDestination === 'category' && (
+                <div className="pt-2 border-t border-[#E8DFD5] text-xs font-hindi space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="catActionMedia"
+                        checked={targetCategoryAction === 'update_existing'}
+                        onChange={() => setTargetCategoryAction('update_existing')}
+                      />
+                      <span>मौजूदा श्रेणी की फ़ोटो बदलें</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="catActionMedia"
+                        checked={targetCategoryAction === 'new'}
+                        onChange={() => setTargetCategoryAction('new')}
+                      />
+                      <span>नई श्रेणी बनाएं</span>
+                    </label>
+                  </div>
+
+                  {targetCategoryAction === 'update_existing' ? (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">श्रेणी चुनें *</label>
+                      <select
+                        value={selectedTargetCatId || categories[0]?.id || ''}
+                        onChange={(e) => setSelectedTargetCatId(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                      >
+                        {categories.map(c => (
+                          <option key={c.id} value={c.id}>{c.name_hi}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">नई श्रेणी का नाम (हिंदी) *</label>
+                        <input
+                          type="text"
+                          placeholder="उदा. जोधपुरी साफे व पगड़ी"
+                          value={newCatNameHi}
+                          onChange={(e) => setNewCatNameHi(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">अंग्रेजी नाम (वैकल्पिक)</label>
+                        <input
+                          type="text"
+                          placeholder="Jodhpuri Turbans"
+                          value={newCatNameEn}
+                          onChange={(e) => setNewCatNameEn(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white font-sans"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sub-options for Banner */}
+              {uploadDestination === 'banner' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-[#E8DFD5] text-xs font-hindi animate-in fade-in">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">बैनर शीर्षक *</label>
+                    <input
+                      type="text"
+                      value={targetBannerTitle}
+                      onChange={(e) => setTargetBannerTitle(e.target.value)}
+                      placeholder="उदा. शाही विरासत कलेक्शन"
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1C1917] mb-1">उपशीर्षक</label>
+                    <input
+                      type="text"
+                      value={targetBannerSubtitle}
+                      onChange={(e) => setTargetBannerSubtitle(e.target.value)}
+                      placeholder="विवाह व उत्सवों के लिए विशेष"
+                      className="w-full px-2.5 py-1.5 border border-[#D5C7B8] rounded-lg bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Direct File Upload */}
@@ -710,8 +1111,8 @@ export const AdminPanel: React.FC = () => {
                         setIsMediaUploading(true);
                         try {
                           const item = await uploadMediaImage(file, mediaUploadTitle.trim() || undefined);
+                          await handleApplyImageToDestination(item.url, item.name);
                           setMediaUploadTitle('');
-                          showToast(`फ़ोटो "${item.name}" लाइव अपलोड हो गई!`);
                         } catch (err: any) {
                           alert(err.message || "इमेज अपलोड विफल रहा");
                         } finally {
@@ -754,9 +1155,9 @@ export const AdminPanel: React.FC = () => {
                     setIsAddingDirectUrl(true);
                     try {
                       const item = await createMediaFromUrl(directMediaUrl.trim(), directMediaTitle.trim() || undefined);
+                      await handleApplyImageToDestination(item.url, item.name);
                       setDirectMediaUrl('');
                       setDirectMediaTitle('');
-                      showToast(`फ़ोटो "${item.name}" डेटाबेस से लाइव हो गई!`);
                     } catch (err: any) {
                       alert(err.message || "इमेज जोड़ने में समस्या आई");
                     } finally {
@@ -795,13 +1196,27 @@ export const AdminPanel: React.FC = () => {
                     </div>
 
                     <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
-                      <div>
-                        <h4 className="font-bold text-xs font-hindi text-[#1C1917] line-clamp-1" title={item.name}>
-                          {item.name}
-                        </h4>
-                        <span className="text-[10px] text-[#786C5E] block font-mono">
-                          {new Date(item.created_at).toLocaleDateString('hi-IN')}
-                        </span>
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-xs font-hindi text-[#1C1917] truncate" title={item.name}>
+                            {item.name}
+                          </h4>
+                          <span className="text-[10px] text-[#786C5E] block font-mono">
+                            {new Date(item.created_at).toLocaleDateString('hi-IN')}
+                          </span>
+                        </div>
+                        {/* Edit Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingMediaItem(item);
+                            setEditingMediaTitle(item.name);
+                          }}
+                          className="p-1.5 text-[#9A6B1F] hover:bg-[#FAF8F5] border border-[#D5C7B8] rounded-md cursor-pointer shrink-0"
+                          title="नाम व फोटो बदलें"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
                       </div>
 
                       <div className="space-y-1.5 pt-1 border-t border-[#E8DFD5]">
@@ -814,11 +1229,11 @@ export const AdminPanel: React.FC = () => {
                             setTimeout(() => setCopiedMediaId(null), 2000);
                             showToast("इमेज लिंक क्लिपबोर्ड में कॉपी हो गया!");
                           }}
-                          className={`w-full py-1.5 px-2 rounded-lg text-xs font-semibold font-hindi flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                          className={`w-full py-1 px-2 rounded-lg text-[11px] font-semibold font-hindi flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
                             isCopied ? 'bg-emerald-100 text-emerald-800' : 'bg-[#FAF8F5] hover:bg-[#F2ECE4] text-[#1C1917] border border-[#D5C7B8]'
                           }`}
                         >
-                          {isCopied ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#9A6B1F]" />}
+                          {isCopied ? <CheckCheck className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-[#9A6B1F]" />}
                           <span>{isCopied ? 'URL कॉपी हुआ!' : 'URL कॉपी करें'}</span>
                         </button>
 
@@ -851,10 +1266,10 @@ export const AdminPanel: React.FC = () => {
                                 created_at: new Date().toISOString()
                               });
                             }}
-                            className="flex-1 py-1 px-1.5 bg-[#FAF8F5] hover:bg-[#EAE0D3] text-[#784E10] border border-[#D5C7B8] rounded text-[11px] font-hindi font-semibold text-center cursor-pointer"
+                            className="flex-1 py-1 px-1 bg-[#FAF8F5] hover:bg-[#EAE0D3] text-[#784E10] border border-[#D5C7B8] rounded text-[11px] font-hindi font-semibold text-center cursor-pointer"
                             title="इस फोटो से नया उत्पाद बनाएं"
                           >
-                            + नया कपड़ा
+                            + कपड़ा
                           </button>
 
                           <button
@@ -865,7 +1280,7 @@ export const AdminPanel: React.FC = () => {
                                 showToast("फ़ोटो सफलतापूर्वक हटा दी गई");
                               }
                             }}
-                            className="p-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded cursor-pointer"
+                            className="p-1 text-red-600 hover:bg-red-50 border border-red-200 rounded cursor-pointer"
                             title="फ़ोटो हटाएं"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -877,6 +1292,184 @@ export const AdminPanel: React.FC = () => {
                 );
               })}
           </div>
+
+          {/* Edit Media Item Modal */}
+          {editingMediaItem && (
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in">
+              <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-5 sm:p-6 space-y-4 my-8">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8DFD5]">
+                  <div className="flex items-center gap-2">
+                    <Pencil className="w-4 h-4 text-[#9A6B1F]" />
+                    <h3 className="font-bold text-sm sm:text-base font-hindi text-[#1C1917]">
+                      फ़ोटो व नाम संपादित करें (Edit Media)
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setEditingMediaItem(null)}
+                    className="p-1 text-[#44403C] hover:bg-[#FAF8F5] rounded-full cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-4 p-3 bg-[#FAF8F5] rounded-xl border border-[#E8DFD5]">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-[#D5C7B8] bg-white shrink-0">
+                    <img
+                      src={resolveImageUrl(editingMediaItem.url)}
+                      alt={editingMediaItem.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1 text-xs font-hindi">
+                    <span className="text-[10px] text-[#786C5E] uppercase font-bold">वर्तमान फ़ोटो</span>
+                    <p className="font-bold text-[#1C1917] truncate">{editingMediaItem.name}</p>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono font-semibold">
+                      {editingMediaItem.source}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs font-hindi">
+                  {/* Name Edit Input */}
+                  <div>
+                    <label className="block font-semibold text-[#1C1917] mb-1">
+                      फ़ोटो का नाम (Image Title / Name) *
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editingMediaTitle}
+                        onChange={(e) => setEditingMediaTitle(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-[#D5C7B8] rounded-lg text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!editingMediaTitle.trim()) return;
+                          await updateMediaItem(editingMediaItem.id, { name: editingMediaTitle.trim() });
+                          setEditingMediaItem(prev => prev ? { ...prev, name: editingMediaTitle.trim() } : null);
+                          showToast("फ़ोटो का नाम अद्यतन कर दिया गया!");
+                        }}
+                        className="px-3.5 py-2 bg-[#1C1917] hover:bg-[#2E2824] text-white rounded-lg font-bold cursor-pointer shrink-0"
+                      >
+                        नाम सेव करें
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Replace Image File */}
+                  <div className="pt-2 border-t border-[#E8DFD5]">
+                    <label className="block font-semibold text-[#1C1917] mb-1">
+                      फ़ोटो बदलें (Replace with New Image File)
+                    </label>
+                    <label className="w-full py-2.5 px-4 bg-[#FAF8F5] border border-[#D5C7B8] hover:bg-[#EAE0D3] text-[#1C1917] rounded-lg font-semibold cursor-pointer flex items-center justify-center gap-2">
+                      {isReplacingMedia ? <Loader2 className="w-4 h-4 animate-spin text-[#9A6B1F]" /> : <Upload className="w-4 h-4 text-[#9A6B1F]" />}
+                      <span>{isReplacingMedia ? 'नई फ़ोटो अपलोड हो रही है...' : 'नई फ़ाइल चुनें व बदलें (< 1s)'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isReplacingMedia}
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setIsReplacingMedia(true);
+                            try {
+                              const updated = await replaceMediaImage(editingMediaItem.id, file, editingMediaTitle);
+                              setEditingMediaItem(updated);
+                              showToast("फ़ोटो सफलतापूर्वक बदल दी गई!");
+                            } catch (err: any) {
+                              alert(err.message || "फ़ोटो बदलने में त्रुटि हुई");
+                            } finally {
+                              setIsReplacingMedia(false);
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Quick Send to Products / Categories / Banners */}
+                  <div className="pt-2 border-t border-[#E8DFD5]">
+                    <label className="block font-semibold text-[#1C1917] mb-2">
+                      इस फ़ोटो को तुरंत लागू करें:
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await handleApplyImageToDestination(editingMediaItem.url, editingMediaTitle || editingMediaItem.name);
+                          setEditingMediaItem(null);
+                        }}
+                        className="py-2 px-1.5 bg-[#FAF8F5] hover:bg-[#EAE0D3] border border-[#D5C7B8] text-[#1C1917] rounded-lg text-center font-bold text-[11px] cursor-pointer"
+                      >
+                        👗 कपड़े में जोड़ें
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (categories.length > 0) {
+                            await saveCategory({ ...categories[0], image_url: editingMediaItem.url });
+                            showToast(`श्रेणी "${categories[0].name_hi}" में फ़ोटो सेट हो गई!`);
+                            setEditingMediaItem(null);
+                          }
+                        }}
+                        className="py-2 px-1.5 bg-[#FAF8F5] hover:bg-[#EAE0D3] border border-[#D5C7B8] text-[#1C1917] rounded-lg text-center font-bold text-[11px] cursor-pointer"
+                      >
+                        📁 श्रेणी में लगाएं
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const newBanner: HomepageBanner = {
+                            id: `banner-${Date.now()}`,
+                            title_hi: editingMediaTitle || editingMediaItem.name,
+                            subtitle_hi: 'विवाह व त्योहारों के लिए विशेष श्रृंखला',
+                            badge_hi: 'विशेष नया स्टॉक',
+                            image_url: editingMediaItem.url,
+                            button_text_hi: 'कलेक्शन देखें',
+                            button_link: '/products',
+                            display_order: banners.length + 1,
+                            is_active: true
+                          };
+                          await saveBanner(newBanner);
+                          showToast(`होमपेज बैनर में फोटो सेट हो गई!`);
+                          setEditingMediaItem(null);
+                        }}
+                        className="py-2 px-1.5 bg-[#FAF8F5] hover:bg-[#EAE0D3] border border-[#D5C7B8] text-[#1C1917] rounded-lg text-center font-bold text-[11px] cursor-pointer"
+                      >
+                        🚩 बैनर बनाएं
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-[#E8DFD5] flex justify-between items-center">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (confirm(`क्या आप "${editingMediaItem.name}" को हटाना चाहते हैं?`)) {
+                        await deleteMediaImage(editingMediaItem.id);
+                        setEditingMediaItem(null);
+                        showToast("फ़ोटो हटा दी गई");
+                      }
+                    }}
+                    className="px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>हटाएं</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingMediaItem(null)}
+                    className="px-4 py-1.5 bg-[#1C1917] text-white rounded-lg text-xs font-bold cursor-pointer"
+                  >
+                    पूर्ण हुआ (Done)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

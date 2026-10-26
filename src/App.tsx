@@ -17,12 +17,31 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { Product } from './types';
 
 function AppContent() {
-  const { products, settings } = useStore();
+  const { products, settings, categories, banners } = useStore();
   const [currentTab, setCurrentTab] = useState<string>('home');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Background in-memory image pre-caching for instant loading
+  useEffect(() => {
+    try {
+      const urlsToPreload: string[] = [
+        settings.logo_url,
+        ...(banners || []).map(b => b.image_url),
+        ...(categories || []).map(c => c.image_url),
+        ...(products || []).slice(0, 12).map(p => p.main_image)
+      ].filter((url): url is string => Boolean(url && typeof url === 'string'));
+
+      urlsToPreload.forEach(url => {
+        const img = new Image();
+        img.src = url;
+      });
+    } catch {
+      // Ignore background image pre-cache failures
+    }
+  }, [settings.logo_url, banners, categories, products]);
 
   // Three-Slide Animated Welcome Experience state (shows on website open and refresh)
   const [showIntro, setShowIntro] = useState<boolean>(() => {
